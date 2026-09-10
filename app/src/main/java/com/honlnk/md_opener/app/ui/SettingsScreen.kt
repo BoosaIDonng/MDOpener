@@ -1,5 +1,7 @@
 package com.honlnk.md_opener.app.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,13 +19,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.honlnk.md_opener.app.R
 import com.honlnk.md_opener.app.ui.components.CompactTopAppBar
 import kotlin.math.roundToInt
+
+// 应用保持零联网权限，检查更新通过浏览器跳转实现，不在 App 内请求网络
+private const val RELEASES_URL = "https://github.com/honlnk/MDOpener/releases/latest"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +44,13 @@ fun SettingsScreen(
     onWidthChange: (Int) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val versionName = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull() ?: "?"
+    }
+
     Scaffold(
         topBar = {
             CompactTopAppBar(
@@ -93,6 +108,23 @@ fun SettingsScreen(
                 valueRange = 320f..1100f,
                 steps = 39
             )
+
+            Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.check_update), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${stringResource(R.string.current_version)}：v$versionName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_URL)))
+                }
+            }) {
+                Text(stringResource(R.string.view_latest_release))
+            }
         }
     }
 }
