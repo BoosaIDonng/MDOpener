@@ -3,20 +3,23 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 背景与图形取自 typewriter.css 暖纸主题：肉桂底 + 暖纸文档 + Markdown 提示符 -->
+    <!-- 与官网 Logo 同一图形：肉桂底 + 暖纸文件夹 + Markdown 提示符。
+         文件夹与提示符路径取自 docs/index.html 的 SVG（100 视窗），
+         经 group 等比放大 1.08 铺满 108 画布，改图形时两边需同步。 -->
     <path android:fillColor="#A65A2E" android:pathData="M0,0h108v108H0z" />
-    <path android:fillColor="#FBF8F1" android:pathData="M30,22h34l14,14v50a4,4 0 0 1 -4,4H30a4,4 0 0 1 -4,-4V26a4,4 0 0 1 4,-4z" />
-    <path android:fillColor="#A65A2E" android:pathData="M64,22l14,14H64z" />
-    <path
-        android:pathData="M42,46L52,56L42,66"
-        android:strokeColor="#A65A2E"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000" />
-    <path
-        android:pathData="M58,66h16"
-        android:strokeColor="#A65A2E"
-        android:strokeWidth="5"
-        android:strokeLineCap="round" />
+    <group android:scaleX="1.08" android:scaleY="1.08">
+        <path android:fillColor="#FBF8F1" android:pathData="M22,30 Q22,24 28,24 H44 L50,31 H72 Q78,31 78,37 V70 Q78,76 72,76 H28 Q22,76 22,70 Z" />
+        <path
+            android:pathData="M32,44 L40,54 L32,64"
+            android:strokeColor="#A65A2E"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M48,64 H68"
+            android:strokeColor="#A65A2E"
+            android:strokeWidth="5"
+            android:strokeLineCap="round" />
+    </group>
 </vector>
