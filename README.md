@@ -85,7 +85,7 @@ app/src/main/
 
 ## 版本
 
-当前版本 **1.2.0**（versionCode 8）。
+当前版本 **1.2.1**（versionCode 9）。
 
 ## License
 
