@@ -33,7 +33,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            // R8 压缩：v1.2.0 及之前未开启，安装包约 11MB（几乎全是未裁剪的字节码）；
+            // 开启后约 4MB。JS 桥接类保留规则见 proguard-rules.pro
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig(System.getenv('KEYSTORE_FILE') != null ? signingConfigs.release : signingConfigs.debug)
         }
