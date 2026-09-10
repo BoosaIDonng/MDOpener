@@ -11,7 +11,7 @@
 
   <!-- Open Graph / Twitter -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="MD Opener" />
+  <meta property="og:site_name" content="MD Opener · Markdown 文档预览工具" />
   <meta property="og:title" content="手机打开 Markdown 文件 — MD Opener 安卓 Markdown 查看器" />
   <meta property="og:description" content="点开 .md 文件即可阅读：目录、搜索、代码高亮、导出 PDF。无广告、不联网、免费开源。" />
   <meta property="og:url" content="https://mdopener.honlnk.com/" />
@@ -27,7 +27,7 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "MD Opener",
+    "name": "MD Opener · Markdown 文档预览工具",
     "operatingSystem": "ANDROID",
     "applicationCategory": "UtilitiesApplication",
     "inLanguage": "zh-CN",
@@ -133,6 +133,9 @@
     .nav { display: flex; align-items: center; justify-content: space-between; height: 54px; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--heading); }
     .brand img { width: 26px; height: 26px; }
+    /* 备案要求名称含中文：副标题弱化处理，窄屏下让位给导航链接 */
+    .brand-sub { font-size: 12px; font-weight: 500; color: var(--text-soft); letter-spacing: 0.02em; }
+    @media (max-width: 640px) { .brand-sub { display: none; } }
     .nav-links { display: flex; gap: 18px; font-size: 14px; }
     .nav-links a { color: var(--text-soft); }
     .nav-links a:hover { color: var(--accent); }
@@ -231,7 +234,7 @@
   <div class="container nav">
     <div class="brand">
       <svg width="26" height="26" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22" fill="#A65A2E"/><path d="M22 30 Q22 24 28 24 H44 L50 31 H72 Q78 31 78 37 V70 Q78 76 72 76 H28 Q22 76 22 70 Z" fill="#FBF8F1"/><path d="M32 44 L40 54 L32 64" stroke="#A65A2E" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M48 64 H68" stroke="#A65A2E" stroke-width="5" stroke-linecap="round"/></svg>
-      MD Opener
+      MD Opener <span class="brand-sub">· Markdown 文档预览工具</span>
     </div>
     <nav class="nav-links">
       <a href="#features">功能</a>
