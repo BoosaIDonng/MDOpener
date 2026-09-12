@@ -1,16 +1,26 @@
 name: Build APK
 
-# 仅在 PR 合并到 main 后触发。
-# PR 合并在 GitHub 里本质是对 main 的一次 push，因此用 push 事件过滤 main 分支即可。
-# 其他分支的 push、以及 PR 本身（opened/synchronized）均不触发。
+# 两种触发：
+# 1. PR 合并到 main 后触发（PR 合并本质是对 main 的一次 push）。
+#    只构建并上传 workflow artifact，供发版前验证。
+# 2. 在 GitHub 上发布 Release（published）时触发。
+#    构建后自动把 APK 以 MD-Opener-<tag>.apk 与 MD-Opener-latest.apk 两个名字
+#    附到该 Release——发版时只需写好说明点发布，无需手动上传 APK。
+#    官网直链指向 releases/latest/download/MD-Opener-latest.apk，始终落到最新
+#    Release；旧 Release 里的同名资产无需删除，仅作历史存档。
 on:
   push:
     branches:
       - main
+  release:
+    types:
+      - published
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # release 事件时上传资产需要写权限
 
     steps:
       - name: Checkout
@@ -46,3 +56,14 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Attach APKs to GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cd app/build/outputs/apk/release
+          cp app-release.apk "MD-Opener-${TAG}.apk"
+          cp app-release.apk MD-Opener-latest.apk
+          gh release upload "$TAG" "MD-Opener-${TAG}.apk" MD-Opener-latest.apk --clobber
