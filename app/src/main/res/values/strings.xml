@@ -12,6 +12,7 @@
     <string name="theme_dark">深色</string>
     <string name="font_size">字号</string>
     <string name="content_width">正文宽度</string>
+    <string name="content_width_beyond_screen">已超过当前屏幕宽度（%1$ddp），该设置在平板 / 折叠屏 / 横屏等更宽的设备上才会生效</string>
     <string name="read_error">无法读取该文件\n可能来源不支持或文件已被移动</string>
     <string name="check_update">检查更新</string>
     <string name="current_version">当前版本</string>

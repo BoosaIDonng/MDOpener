@@ -12,7 +12,7 @@
 - 🔗 **多入口**：从文件管理器「打开」（`ACTION_VIEW`）、接收其他应用「分享」（`ACTION_SEND`，纯文本 `EXTRA_TEXT` 亦可直接渲染），以及从桌面图标启动进入首页自选文件
 - 🎨 **主题**：跟随系统 / 浅色 / 深色；「暖纸 / 深炭」双配色取自正文排版主题，应用外壳与内容同一视觉语言
 - 🔤 **可调字号**：12sp – 28sp
-- 📏 **正文宽度**：320dp – 1100dp，适配手机与平板
+- 📏 **正文宽度**：240dp – 1100dp，适配手机与平板；设置值超过当前屏幕宽度时设置页会提示（该档位面向更宽设备）
 - 📑 **目录（TOC）**：自动提取标题，点击快速跳转
 - 🔍 **页内搜索**：实时高亮匹配，显示命中数量
 - 🖼️ **相对图片解析**：支持 `![](./images/a.png)` 这类同级目录引用（file:// 与树形 DocumentsProvider 的 content:// 均可）
@@ -83,9 +83,11 @@ app/src/main/
 
 要求：JDK 17+、Android SDK 34。
 
+> 官网「下载 APK」按钮直链指向 `releases/latest/download/MD-Opener-latest.apk`，始终落到最新 Release。发布 Release 时 CI 会自动附上 `MD-Opener-<tag>.apk` 与 `MD-Opener-latest.apk` 两个资产，只需写好说明点发布；旧 Release 里的同名资产无需删除。
+
 ## 版本
 
-当前版本 **1.2.1**（versionCode 9）。
+当前版本 **1.2.2**（versionCode 10）。
 
 ## License
 
