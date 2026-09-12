@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,7 +46,9 @@ import com.honlnk.md_opener.app.ui.components.CompactTopAppBar
 @Composable
 fun HomeScreen(
     onOpenUri: (Uri) -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    hasRecent: Boolean,
+    onOpenRecent: () -> Unit
 ) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) onOpenUri(uri)
@@ -56,6 +59,12 @@ fun HomeScreen(
             CompactTopAppBar(
                 title = stringResource(R.string.app_name),
                 actions = {
+                    // 「最近文档」只在本次运行中关闭过文档后出现，进程结束即清空
+                    if (hasRecent) {
+                        IconButton(onClick = onOpenRecent) {
+                            Icon(Icons.Filled.History, stringResource(R.string.reopen_recent))
+                        }
+                    }
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, stringResource(R.string.settings))
                     }

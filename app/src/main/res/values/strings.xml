@@ -2,6 +2,7 @@
     <string name="app_name">MD Opener</string>
     <string name="home_hint">点击打开 Markdown 文件</string>
     <string name="open_file">打开文件</string>
+    <string name="reopen_recent">重新打开最近文档</string>
     <string name="settings">设置</string>
     <string name="toc">目录</string>
     <string name="search">搜索</string>

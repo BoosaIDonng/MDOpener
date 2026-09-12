@@ -7,7 +7,9 @@ data class OpenedFile(
     val name: String,
     val content: String?,
     val loading: Boolean = false,
-    val error: Boolean = false
+    val error: Boolean = false,
+    /** 是否由外部 intent（文件管理器/分享）直接打开；决定系统返回键是退出 App 还是退回主页 */
+    val external: Boolean = false
 )
 
 data class TocItem(
