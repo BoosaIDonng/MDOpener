@@ -46,7 +46,8 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    // WebView 满屏铺开，其 CSS 视口宽度≈屏幕 dp 宽；max-width ≥ 屏宽时永远不限制排版
+    // WebView 满屏铺开，其 CSS 视口宽度≈屏幕 dp 宽；严格超过屏宽后 max-width 才彻底不再收窄正文
+    // （等于屏宽时相对更低档位仍有效果，故阈值用 > 而非 >=）
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val versionName = remember {
         runCatching {
@@ -111,7 +112,7 @@ fun SettingsScreen(
                 valueRange = 240f..1100f,
                 steps = 42
             )
-            if (maxWidthDp >= screenWidthDp) {
+            if (maxWidthDp > screenWidthDp) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     stringResource(R.string.content_width_beyond_screen, screenWidthDp),
