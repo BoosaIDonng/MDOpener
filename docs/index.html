@@ -58,7 +58,12 @@
       {
         "@type": "Question",
         "name": "MD Opener 收费吗？有广告吗？",
-        "acceptedAnswer": { "@type": "Answer", "text": "完全免费，MIT 协议开源。应用没有广告，也没有申请联网权限，所有渲染都在手机本地完成。" }
+        "acceptedAnswer": { "@type": "Answer", "text": "免费版永远完全免费、无广告、不申请联网权限。专业版正在开发中（定价 ¥5），将包含更多高级功能；它同样开源，GitHub 上始终能免费下载。" }
+      },
+      {
+        "@type": "Question",
+        "name": "专业版和免费版有什么区别？",
+        "acceptedAnswer": { "@type": "Answer", "text": "专业版还在开发中，上线前免费版就是完整版。专业版会逐步加入独占功能；两个版本都开源。" }
       },
       {
         "@type": "Question",
@@ -226,6 +231,37 @@
 
     footer { border-top: 1px solid var(--border); padding: 30px 0 44px; color: var(--text-soft); font-size: 13.5px; }
     footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+    /* 专业版 */
+    .btn-pro { color: var(--accent); background: var(--bg); border-color: var(--accent); }
+    .pro-card { border: 1px solid var(--border); border-radius: 14px; padding: 22px; background: var(--bg); }
+    .pro-buy-row { text-align: center; margin: 18px 0 4px; }
+    .key-row { display: flex; gap: 10px; margin-top: 18px; }
+    @media (max-width: 520px) { .key-row { flex-direction: column; } }
+    .key-row input {
+      flex: 1; padding: 12px 16px; border-radius: 12px; font-size: 15px;
+      border: 1px solid var(--border); background: var(--bg-soft); color: var(--text);
+      font-family: "SFMono-Regular", "JetBrains Mono", Consolas, Menlo, monospace;
+      letter-spacing: .05em; outline: none;
+    }
+    .key-row input:focus { border-color: var(--accent); }
+    .key-row .btn { white-space: nowrap; }
+    .key-status { margin: 10px 2px 0; font-size: 13.5px; min-height: 1.4em; }
+    .key-status.err { color: #d9534f; }
+    .key-status.ok { color: var(--green); }
+    .pro-unlocked { margin-top: 18px; padding: 18px; border: 1px solid var(--green); border-radius: 12px; background: var(--bg-soft); }
+    .pro-unlocked .ttl { color: var(--green); font-weight: 700; }
+    .pro-unlocked p { margin: 6px 0 14px; font-size: 13.5px; color: var(--text-soft); }
+    .key-clear { font-size: 12.5px; color: var(--text-soft); }
+    .pro-badge {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      color: var(--accent); background: var(--accent-soft);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 2px 10px; vertical-align: middle; margin-left: 8px;
+    }
+    .pro-soon .ttl { font-weight: 700; color: var(--heading); }
+    .pro-soon p { margin: 8px 0 0; font-size: 14.5px; color: var(--text-soft); }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -238,6 +274,7 @@
     </div>
     <nav class="nav-links">
       <a href="#features">功能</a>
+      <a href="#pro">专业版</a>
       <a href="#how">怎么用</a>
       <a href="#faq">常见问题</a>
       <a href="https://github.com/honlnk/MDOpener" target="_blank" rel="noopener">GitHub</a>
@@ -247,14 +284,15 @@
 
 <main>
   <div class="hero container">
-    <div class="hero-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>开源免费 · v<span id="ver">1.2.1</span> · Android 7.0+</div>
+    <div class="hero-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>开源免费 · v<span id="ver">1.2.3</span> · Android 7.0+</div>
     <h1>手机打开 Markdown 文件，<br/>就像翻开的<span class="accent">一本书</span></h1>
     <p class="sub">安卓系统本身不认识 .md 文件——点开要么报错，要么是一屏 <code># *</code> 符号。装上 MD Opener，在文件管理器里直接点开 .md，即可阅读排版好的正文：目录跳转、全文搜索、代码高亮、一键导出 PDF。</p>
     <div class="hero-actions">
-      <a class="btn btn-primary" href="https://github.com/honlnk/MDOpener/releases/latest" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>下载 APK（免费）</a>
-      <a class="btn btn-ghost" href="https://github.com/honlnk/MDOpener" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>查看源码</a>
+      <a class="btn btn-primary" href="https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>下载免费版 APK</a>
+      <a class="btn btn-pro" href="#pro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>专业版 · 开发中</a>
+      <a class="btn btn-ghost" href="https://github.com/honlnk/MDOpener/releases" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>全部版本</a>
     </div>
-    <p class="hero-meta">无广告 · 无联网权限 · 无后台行为 · MIT 开源 · 安装包约 1.4MB</p>
+    <p class="hero-meta">无广告 · 无联网权限 · 无后台行为 · MIT 开源 · 安装包约 1.3MB</p>
   </div>
 
   <section id="why">
@@ -295,7 +333,23 @@
         <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><h3>编码自动检测</h3><p>UTF-8 / GBK / GB2312 老文件打开不乱码</p></div>
         <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div><h3>相对图片解析</h3><p>正确显示 ![](./images/a.png) 这类同目录引用</p></div>
         <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>GitHub 提示框</h3><p>支持 &gt; [!NOTE] 等 callout 语法渲染</p></div>
-        <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor" stroke="none"/></svg></div><h3>暖纸 / 深炭主题</h3><p>跟随系统切换，字号、页宽均可自定义</p></div>
+        <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20z" fill="currentColor" stroke="none"/></svg></div><h3>暖纸 / 深炭主题</h3><p>跟随系统切换，取色自正文排版主题，外壳与内容同一视觉语言</p></div>
+        <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg></div><h3>阅读版面自定义</h3><p>字号 12–28sp、正文宽度 240–1100dp，手机与平板都舒适；超过屏宽的档位会提示生效时机</p></div>
+        <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></div><h3>最近文档一键重开</h3><p>主页右上角保留刚关闭文档的入口，去改个设置再回来，无需重新选文件</p></div>
+        <div class="feature"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></div><h3>返回不跳戏</h3><p>从文件管理器打开，返回即退回文件管理器；在 App 内浏览，则逐级退回上一页</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pro">
+    <div class="container">
+      <h2 class="section-title">专业版<span class="pro-badge">开发中</span></h2>
+      <p class="section-desc">专业版正在开发中，将带来更多高级功能，定价 ¥5（一次买断）。在它上线之前，<b>免费版就是完整版</b>——现有功能不会有任何缩水。两个版本都将继续开源，GitHub Releases 上永远能免费获取，这是本项目的承诺。</p>
+      <div class="pro-card">
+        <div class="pro-soon">
+          <div class="ttl">🚧 首个独占功能开发中，购买通道尚未开放</div>
+          <p>专业版上线时，本页会开放 ¥5 key 的购买与兑换下载入口。付费完全自愿——专业版同样开源，届时懂技术的朋友仍可在 GitHub 免费获取。</p>
+        </div>
       </div>
     </div>
   </section>
@@ -305,7 +359,7 @@
       <h2 class="section-title">怎么用？三步开始</h2>
       <p class="section-desc">装好后无需任何设置，它就像系统自带的阅读器一样工作。</p>
       <div class="steps">
-        <div class="step"><div class="num">1</div><h3>下载安装</h3><p>从 GitHub Releases 下载 APK 安装（约 3MB）。签名固定，升级可直接覆盖安装。</p></div>
+        <div class="step"><div class="num">1</div><h3>下载安装</h3><p>从 GitHub Releases 下载 APK 安装（约 1.3MB）。签名固定，升级可直接覆盖安装。</p></div>
         <div class="step"><div class="num">2</div><h3>点开任意 .md 文件</h3><p>在文件管理器里点击 .md 文件，选「用 MD Opener 打开」并设为默认。微信/QQ 文件先转存到手机。</p></div>
         <div class="step"><div class="num">3</div><h3>阅读、搜索、导出</h3><p>呼出目录跳转章节，页内搜索关键词，需要打印或分享时一键导出 PDF。</p></div>
       </div>
@@ -326,7 +380,15 @@
       </details>
       <details>
         <summary>MD Opener 收费吗？有广告吗？</summary>
-        <p>完全免费，MIT 协议开源。应用没有广告，也没有申请联网权限，所有渲染都在手机本地完成。</p>
+        <p>免费版永远完全免费、无广告、不申请联网权限，所有渲染都在手机本地完成。专业版正在开发中（定价 ¥5，一次买断），将包含更多高级功能；它同样开源，GitHub 上始终能免费下载。</p>
+      </details>
+      <details>
+        <summary>专业版和免费版有什么区别？</summary>
+        <p>专业版还在开发中，上线前免费版就是完整版。专业版（¥5）会逐步加入独占功能；它同样开源——GitHub Releases 永远提供免费下载，付费与否完全自愿。</p>
+      </details>
+      <details>
+        <summary>专业版什么时候上线？</summary>
+        <p>首个独占功能正在开发，完成后本页会开放购买与兑换下载（¥5，一次买断）。想第一时间获取更新，可以 Star GitHub 仓库。</p>
       </details>
       <details>
         <summary>支持把 Markdown 导出成 PDF 吗？</summary>
@@ -347,11 +409,77 @@
 <footer>
   <div class="container">
     <div>© 2026 MD Opener · MIT 开源 · <a href="https://github.com/honlnk/MDOpener" target="_blank" rel="noopener">GitHub</a></div>
-    <div><a href="https://github.com/honlnk/MDOpener/releases/latest" target="_blank" rel="noopener">下载最新版</a> · <a href="https://github.com/honlnk/MDOpener/issues" target="_blank" rel="noopener">反馈问题</a></div>
+    <div><a href="https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk">下载最新版</a> · <a href="https://github.com/honlnk/MDOpener/releases" target="_blank" rel="noopener">全部版本</a> · <a href="https://github.com/honlnk/MDOpener/issues" target="_blank" rel="noopener">反馈问题</a></div>
   </div>
 </footer>
 
+<script src="pro-keys.js"></script>
 <script>
+  // —— 链接配置 ——
+  // 专业版有了独立构建后，把 PRO_APK_URL 改为 .../download/MD-Opener-Pro-latest.apk
+  const FREE_APK_URL = 'https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk';
+  const PRO_APK_URL = FREE_APK_URL;
+  // TODO: 替换为面包多商品链接；留空时购买按钮提示「即将开通」
+  const BUY_URL = '';
+  const KEY_STORE = 'mdopener_pro_key';
+
+  // —— 专业版解锁（购买通道开放时恢复对应 DOM，这套逻辑即自动生效）——
+  const keyInput = document.getElementById('key-input');
+  if (keyInput) {
+    const keyStatus = document.getElementById('key-status');
+    const lockedBox = document.getElementById('pro-locked');
+    const unlockedBox = document.getElementById('pro-unlocked');
+
+    function setStatus(msg, ok) {
+      keyStatus.textContent = msg;
+      keyStatus.className = 'key-status' + (msg ? (ok ? ' ok' : ' err') : '');
+    }
+    function unlock() {
+      lockedBox.hidden = true;
+      unlockedBox.hidden = false;
+    }
+
+    document.getElementById('key-verify').addEventListener('click', () => {
+      if (!window.MDOpenerKeys) { setStatus('校验组件加载失败，请刷新页面重试', false); return; }
+      const v = keyInput.value;
+      if (MDOpenerKeys.isValid(v)) {
+        try { localStorage.setItem(KEY_STORE, v.trim()); } catch (e) {}
+        unlock();
+      } else {
+        setStatus('key 无效，请检查是否输入完整（建议从订单页复制粘贴）', false);
+      }
+    });
+    keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('key-verify').click(); });
+
+    document.getElementById('key-clear').addEventListener('click', e => {
+      e.preventDefault();
+      try { localStorage.removeItem(KEY_STORE); } catch (err) {}
+      unlockedBox.hidden = true;
+      lockedBox.hidden = false;
+      keyInput.value = '';
+      setStatus('', false);
+    });
+
+    // 已保存的 key：刷新或重访时保持解锁
+    try {
+      const saved = localStorage.getItem(KEY_STORE);
+      if (saved && window.MDOpenerKeys && MDOpenerKeys.isValid(saved)) unlock();
+    } catch (e) {}
+
+    // 购买按钮：未配置链接时给出提示而不是 404
+    const buyBtn = document.getElementById('pro-buy');
+    if (BUY_URL) {
+      buyBtn.href = BUY_URL;
+    } else {
+      buyBtn.addEventListener('click', e => {
+        e.preventDefault();
+        setStatus('购买通道即将开通。专业版与免费版目前是同一个安装包，可先点上方「下载免费版 APK」。', false);
+        keyInput.focus();
+      });
+    }
+    document.getElementById('pro-download').href = PRO_APK_URL;
+  }
+
   // 显示 GitHub 最新版本号（失败则保留 HTML 内置版本）
   fetch('https://api.github.com/repos/honlnk/MDOpener/releases/latest')
     .then(r => r.ok ? r.json() : null)
