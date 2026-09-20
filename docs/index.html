@@ -16,7 +16,9 @@
   <meta property="og:description" content="点开 .md 文件即可阅读：目录、搜索、代码高亮、导出 PDF。无广告、不联网、免费开源。" />
   <meta property="og:url" content="https://mdopener.honlnk.com/" />
   <meta property="og:locale" content="zh_CN" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://mdopener.honlnk.com/cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://mdopener.honlnk.com/cover.png" />
   <meta name="twitter:title" content="手机打开 Markdown 文件 — MD Opener 安卓 Markdown 查看器" />
   <meta name="twitter:description" content="点开 .md 文件即可阅读：目录、搜索、代码高亮、导出 PDF。无广告、不联网、免费开源。" />
 
@@ -58,12 +60,12 @@
       {
         "@type": "Question",
         "name": "MD Opener 收费吗？有广告吗？",
-        "acceptedAnswer": { "@type": "Answer", "text": "免费版永远完全免费、无广告、不申请联网权限。专业版正在开发中（定价 ¥5），将包含更多高级功能；它同样开源，GitHub 上始终能免费下载。" }
+        "acceptedAnswer": { "@type": "Answer", "text": "免费版永远完全免费、无广告、不申请联网权限。另有 ¥5 的专业版（目前与免费版同一安装包），付费是对开发者的支持，两个版本都开源，GitHub 上始终能免费下载。" }
       },
       {
         "@type": "Question",
         "name": "专业版和免费版有什么区别？",
-        "acceptedAnswer": { "@type": "Answer", "text": "专业版还在开发中，上线前免费版就是完整版。专业版会逐步加入独占功能；两个版本都开源。" }
+        "acceptedAnswer": { "@type": "Answer", "text": "目前没有任何区别，是同一个安装包。专业版是支持开发者的自愿付费通道，后续会逐步加入独占功能；两个版本都开源。" }
       },
       {
         "@type": "Question",
@@ -289,7 +291,7 @@
     <p class="sub">安卓系统本身不认识 .md 文件——点开要么报错，要么是一屏 <code># *</code> 符号。装上 MD Opener，在文件管理器里直接点开 .md，即可阅读排版好的正文：目录跳转、全文搜索、代码高亮、一键导出 PDF。</p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>下载免费版 APK</a>
-      <a class="btn btn-pro" href="#pro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>专业版 · 开发中</a>
+      <a class="btn btn-pro" href="#pro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>专业版 · ¥5</a>
       <a class="btn btn-ghost" href="https://github.com/honlnk/MDOpener/releases" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>全部版本</a>
     </div>
     <p class="hero-meta">无广告 · 无联网权限 · 无后台行为 · MIT 开源 · 安装包约 1.3MB</p>
@@ -343,12 +345,27 @@
 
   <section id="pro">
     <div class="container">
-      <h2 class="section-title">专业版<span class="pro-badge">开发中</span></h2>
-      <p class="section-desc">专业版正在开发中，将带来更多高级功能，定价 ¥5（一次买断）。在它上线之前，<b>免费版就是完整版</b>——现有功能不会有任何缩水。两个版本都将继续开源，GitHub Releases 上永远能免费获取，这是本项目的承诺。</p>
+      <h2 class="section-title">专业版 · ¥5</h2>
+      <p class="section-desc">坦诚相告：<b>目前专业版与免费版是同一个安装包</b>，功能没有任何差别。¥5 买到的是三样东西：对开发者的支持、后续专业版独占功能的优先获取、免折腾 GitHub 的下载通道。两个版本都开源——GitHub Releases 上永远能免费拿到同一份文件，懂技术的朋友请随意，这是本项目的承诺。</p>
       <div class="pro-card">
-        <div class="pro-soon">
-          <div class="ttl">🚧 首个独占功能开发中，购买通道尚未开放</div>
-          <p>专业版上线时，本页会开放 ¥5 key 的购买与兑换下载入口。付费完全自愿——专业版同样开源，届时懂技术的朋友仍可在 GitHub 免费获取。</p>
+        <div id="pro-locked">
+          <div class="steps">
+            <div class="step"><div class="num">1</div><h3>支付 ¥5</h3><p>通过面包多购买专业版 key，支持微信 / 支付宝。</p></div>
+            <div class="step"><div class="num">2</div><h3>获得 key</h3><p>支付成功后 key 立即显示在订单页，形如 MDOP-XXXXX-XXXXX。</p></div>
+            <div class="step"><div class="num">3</div><h3>回来解锁</h3><p>把 key 粘贴到下方输入框，验证通过即可下载专业版。</p></div>
+          </div>
+          <p class="pro-buy-row"><a class="btn btn-primary" id="pro-buy" href="#" target="_blank" rel="noopener">购买专业版 key · ¥5</a></p>
+          <div class="key-row">
+            <input id="key-input" type="text" placeholder="输入 key，例如 MDOP-XXXXX-XXXXX" autocomplete="off" spellcheck="false" />
+            <button class="btn btn-primary" id="key-verify" type="button">验证并解锁</button>
+          </div>
+          <p class="key-status" id="key-status"></p>
+        </div>
+        <div class="pro-unlocked" id="pro-unlocked" hidden>
+          <div class="ttl">✓ 专业版已解锁</div>
+          <p>本浏览器已记住你的 key，下次访问无需重新输入。当前专业版与免费版为同一安装包，签名一致，可直接覆盖安装。</p>
+          <a class="btn btn-primary" id="pro-download" href="#">下载专业版 APK</a>
+          <p style="margin:12px 0 0;"><a href="#" class="key-clear" id="key-clear">清除本机保存的 key</a></p>
         </div>
       </div>
     </div>
@@ -380,15 +397,15 @@
       </details>
       <details>
         <summary>MD Opener 收费吗？有广告吗？</summary>
-        <p>免费版永远完全免费、无广告、不申请联网权限，所有渲染都在手机本地完成。专业版正在开发中（定价 ¥5，一次买断），将包含更多高级功能；它同样开源，GitHub 上始终能免费下载。</p>
+        <p>免费版永远完全免费、无广告、不申请联网权限，所有渲染都在手机本地完成。另有 ¥5 的专业版——目前与免费版是同一个安装包，付费是对开发者的支持，并可优先获取后续独占功能。两个版本都开源，GitHub 上始终能免费下载。</p>
       </details>
       <details>
         <summary>专业版和免费版有什么区别？</summary>
-        <p>专业版还在开发中，上线前免费版就是完整版。专业版（¥5）会逐步加入独占功能；它同样开源——GitHub Releases 永远提供免费下载，付费与否完全自愿。</p>
+        <p>目前没有任何区别，是同一个安装包。专业版（¥5）是支持开发者的通道，后续会逐步加入独占功能。它同样开源——GitHub Releases 永远提供同一份文件的免费下载，付费与否完全自愿。</p>
       </details>
       <details>
-        <summary>专业版什么时候上线？</summary>
-        <p>首个独占功能正在开发，完成后本页会开放购买与兑换下载（¥5，一次买断）。想第一时间获取更新，可以 Star GitHub 仓库。</p>
+        <summary>专业版 key 丢了或换了浏览器怎么办？</summary>
+        <p>解锁状态只保存在当前浏览器本地。换浏览器或清理缓存后，回到本页重新输入 key 即可恢复下载。key 长期有效，请保留好面包多订单页里的 key。</p>
       </details>
       <details>
         <summary>支持把 Markdown 导出成 PDF 吗？</summary>
@@ -420,7 +437,7 @@
   const FREE_APK_URL = 'https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk';
   const PRO_APK_URL = FREE_APK_URL;
   // TODO: 替换为面包多商品链接；留空时购买按钮提示「即将开通」
-  const BUY_URL = '';
+  const BUY_URL = 'https://mbd.pub/o/bread/YZaVlpdubQ==';
   const KEY_STORE = 'mdopener_pro_key';
 
   // —— 专业版解锁（购买通道开放时恢复对应 DOM，这套逻辑即自动生效）——
