@@ -1,0 +1,78 @@
+name: Build IPA
+
+# iOS 构建交付链路（无签名 IPA，交付后由用户侧重签侧载，见 plans/ios-v1.md §3.4）：
+# 1. push 到 main / dev 且 ios/、web/ 有改动时构建验证（本机无 Xcode，所有编译验证依赖 CI）。
+# 2. 发布 ios-v* tag 的 Release（published）时构建并附 MD-Opener-ios-<tag>.ipa。
+#    仅作为 prerelease 里程碑使用，不进入 releases/latest（官网 APK 直链依赖 latest，勿改成正式版）。
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'ios/**'
+      - 'web/**'
+      - '.github/workflows/build-ios.yml'
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'ios-')
+    runs-on: macos-15   # 固定镜像版本，随其附带的 Xcode 大版本一同锁定；升级须显式提交
+    permissions:
+      contents: write  # release 事件时上传资产需要写权限
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      # 工程由 XcodeGen 从 ios/project.yml 生成（本机无 Xcode 也能用文本维护工程定义）
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd ios && xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          xcodebuild \
+            -project ios/MDOpener.xcodeproj \
+            -scheme MDOpener \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            -quiet build
+
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          cp -r build/Build/Products/Release-iphoneos/MDOpener.app Payload/MDOpener.app
+          zip -qr MD-Opener-unsigned.ipa Payload
+          unzip -l MD-Opener-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: md-opener-ipa
+          path: MD-Opener-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach IPA to GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cp MD-Opener-unsigned.ipa "MD-Opener-ios-${TAG}.ipa"
+          gh release upload "$TAG" "MD-Opener-ios-${TAG}.ipa" --clobber

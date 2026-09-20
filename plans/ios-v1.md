@@ -244,15 +244,15 @@ MDOpener/
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| ① | 结构调整（monorepo 化） | 待开始 |
-| ② | iOS 骨架（工程 + 壳 + WebView 桥） | 待开始 |
+| ① | 结构调整（monorepo 化） | ✅ 已完成（CI 35524316945 绿） |
+| ② | iOS 骨架（工程 + 壳 + WebView 桥） | 进行中 |
 | ③ | 文件链路（打开方式 + 编码） | 待开始 |
 | ④ | 功能补齐（设置 / TOC / 搜索 / 图片） | 待开始 |
 | ⑤ | 导出与交付（PDF + IPA + 朋友实测） | 待开始 |
 
 ## 12. 施工日志
 
-（施工时追加，暂无条目）
+- 2026-09-21 | 阶段① | `8faee36` | CI run 35524316945 success，artifact `md-opener-apk`（1.2MB）存在；`web/` 六个文件与原 assets git rename 相似度 100%，历史可 `--follow` 追溯 | 偏差 4 条：① `workflow_dispatch` 要求 workflow 文件先存在于默认分支，dev 施工期不可用 → 改为 build.yml 的 push 触发加入 dev 分支（顺带成为长期有用的验证通道）；② deploy-pages.yml 实为 tag 触发（v*/site-*），计划中「加 paths 过滤」不适用，跳过；③ 计划未预见 build.yml 的 release 触发无 tag 过滤，发 ios-v* 时会把 APK 错误挂上 iOS Release → 已补 `!startsWith(tag, 'ios-')` 跳过条件；④ 未单独创建 ios/.gitignore，根 .gitignore 的 iOS 条目已覆盖同一目的。
 
 ## 13. 风险与预案
 
