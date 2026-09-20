@@ -245,14 +245,16 @@ MDOpener/
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | ① | 结构调整（monorepo 化） | ✅ 已完成（CI 35524316945 绿） |
-| ② | iOS 骨架（工程 + 壳 + WebView 桥） | 进行中 |
-| ③ | 文件链路（打开方式 + 编码） | 待开始 |
-| ④ | 功能补齐（设置 / TOC / 搜索 / 图片） | 待开始 |
+| ② | iOS 骨架（工程 + 壳 + WebView 桥） | ✅ 已完成（CI 35524805764 绿，IPA 126KB；安卓回归 35524618646 绿） |
+| ③ | 文件链路（打开方式 + 编码） | ✅ 已完成（编码/外部拉起/最近文档随②实现；GBK 样张 + 本机解码实测通过） |
+| ④ | 功能补齐（设置 / TOC / 搜索 / 图片） | 进行中 |
 | ⑤ | 导出与交付（PDF + IPA + 朋友实测） | 待开始 |
 
 ## 12. 施工日志
 
 - 2026-09-21 | 阶段① | `8faee36` | CI run 35524316945 success，artifact `md-opener-apk`（1.2MB）存在；`web/` 六个文件与原 assets git rename 相似度 100%，历史可 `--follow` 追溯 | 偏差 4 条：① `workflow_dispatch` 要求 workflow 文件先存在于默认分支，dev 施工期不可用 → 改为 build.yml 的 push 触发加入 dev 分支（顺带成为长期有用的验证通道）；② deploy-pages.yml 实为 tag 触发（v*/site-*），计划中「加 paths 过滤」不适用，跳过；③ 计划未预见 build.yml 的 release 触发无 tag 过滤，发 ios-v* 时会把 APK 错误挂上 iOS Release → 已补 `!startsWith(tag, 'ios-')` 跳过条件；④ 未单独创建 ios/.gitignore，根 .gitignore 的 iOS 条目已覆盖同一目的。
+- 2026-09-21 | 阶段② | `12c7213` + `78bc85c` | 首跑 35524618698 编译失败（可选元组不遵循 Equatable，MarkdownWebView.swift:94），拆字段判等修复后 35524805764 success；IPA 含 `Payload/MDOpener.app/web/`（folder reference 生效，viewer 相对引用可用）；viewer.html 改动后安卓回归 35524618646 绿 | 偏差 2 条：① 编码检测（DocumentLoader）提前并入②实现，③仅剩样张与验证——理由：代码独立且一次写好无拆分收益；② Info 补 `LSSupportsOpeningDocumentsInPlace: true`（构建警告 + 原地打开保留文件名，优于默认 tmp Inbox 拷贝）。
+- 2026-09-21 | 阶段③ | 随②提交 | GBK 样张 `test/fixtures/gbk-sample.md`（GB18030 实编码）入库；DocumentLoader 与 macOS 测试壳本机编译直跑：GB18030 / UTF-8 / BOM 三链路断言全过 | 无。真机「打开方式」拉起与最近文档体验留待用户复核（本机无 Xcode/模拟器，属计划内降级验证）。
 
 ## 13. 风险与预案
 
