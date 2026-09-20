@@ -28,6 +28,10 @@
 
 在 [GitHub Releases](https://github.com/honlnk/MDOpener/releases) 下载最新 APK，签名固定，可直接覆盖安装。
 
+### iOS（侧载版）
+
+iOS 版不走 App Store，面向侧载场景：从 [Releases](https://github.com/honlnk/MDOpener/releases) 的 `ios-v*` 预发布版（或 [Actions](https://github.com/honlnk/MDOpener/actions/workflows/build-ios.yml) 运行页产物）下载 `MD-Opener-ios-*.ipa`，用 AltStore / Sideloadly / TrollStore 等工具以自己的 Apple ID 重签安装。功能与安卓版对齐；相对路径图片因 iOS 沙盒需在提示时授权所在文件夹（仅需一次）。
+
 ## 技术栈
 
 - **Kotlin** + **Jetpack Compose**（Material 3）

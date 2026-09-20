@@ -74,5 +74,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          cp MD-Opener-unsigned.ipa "MD-Opener-ios-${TAG}.ipa"
-          gh release upload "$TAG" "MD-Opener-ios-${TAG}.ipa" --clobber
+          VER="${TAG#ios-}"
+          cp MD-Opener-unsigned.ipa "MD-Opener-ios-${VER}.ipa"
+          gh release upload "$TAG" "MD-Opener-ios-${VER}.ipa" --clobber
