@@ -48,8 +48,6 @@ struct MarkdownWebView: UIViewRepresentable {
         var parent: MarkdownWebView
         weak var host: WKWebView?
         private var pageReady = false
-        private var lastMarkdown: String?
-        private var lastTheme: (Bool, Int, Int)?
 
         init(_ parent: MarkdownWebView) {
             self.parent = parent
@@ -62,7 +60,9 @@ struct MarkdownWebView: UIViewRepresentable {
                 pageReady = true
                 // 页面重载后状态清零，重新完整注入一次
                 lastMarkdown = nil
-                lastTheme = nil
+                lastThemeDark = nil
+                lastThemeFont = nil
+                lastThemeWidth = nil
                 syncIfNeeded()
             case "toc":
                 if let json = message.body as? String,
@@ -90,14 +90,21 @@ struct MarkdownWebView: UIViewRepresentable {
                     "window.setMarkdown && window.setMarkdown(\(p.markdown.jsLiteral));",
                     completionHandler: nil)
             }
-            let theme = (p.isDark, p.fontSize, p.maxWidth)
-            if lastTheme != theme {
-                lastTheme = theme
+            // 元组不遵循 Equatable，T? 与 T 不能直接比较，拆成逐字段判等
+            if lastThemeDark != p.isDark || lastThemeFont != p.fontSize || lastThemeWidth != p.maxWidth {
+                lastThemeDark = p.isDark
+                lastThemeFont = p.fontSize
+                lastThemeWidth = p.maxWidth
                 host.evaluateJavaScript(
                     "window.applyTheme && window.applyTheme(\(p.isDark), \(p.fontSize), \(p.maxWidth));",
                     completionHandler: nil)
             }
         }
+
+        private var lastMarkdown: String?
+        private var lastThemeDark: Bool?
+        private var lastThemeFont: Int?
+        private var lastThemeWidth: Int?
     }
 }
 

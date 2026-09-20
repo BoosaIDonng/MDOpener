@@ -30,7 +30,9 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        # 文件关联：注册为 .md / .markdown / .mdown 的「打开方式」候选
+        # 文件关联：注册为 .md / .markdown / .mdown 的「打开方式」候选；
+        # 原地打开（不拷进 tmp Inbox），保留原始文件名与所在位置
+        LSSupportsOpeningDocumentsInPlace: true
         CFBundleDocumentTypes:
           - CFBundleTypeName: Markdown Document
             LSHandlerRank: Alternate
