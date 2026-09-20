@@ -51,6 +51,19 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  // ---- 双端宿主桥 ----
+  // Android：window.AndroidBridge（addJavascriptInterface，同步调用）；
+  // iOS：window.webkit.messageHandlers（WKScriptMessageHandler，异步消息）+ mdres:// scheme 拦截图片。
+  // 安卓 WebView 无 window.webkit，探测结果恒为 false，行为与单端版完全一致。
+  var IS_IOS = !!(window.webkit && window.webkit.messageHandlers);
+  function reportTocToHost(json) {
+    if (IS_IOS) {
+      try { window.webkit.messageHandlers.toc.postMessage(json); } catch (e) {}
+    } else if (window.AndroidBridge && window.AndroidBridge.reportToc) {
+      window.AndroidBridge.reportToc(json);
+    }
+  }
+
   if (window.marked && marked.setOptions) {
     marked.setOptions({ gfm: true, breaks: false });
   }
@@ -204,8 +217,8 @@
         if (!h.id) h.id = 'h-' + i;
         toc.push({ id: h.id, text: h.textContent, level: parseInt(h.tagName.substring(1), 10) });
       });
-      if (window.AndroidBridge && window.AndroidBridge.reportToc) {
-        window.AndroidBridge.reportToc(JSON.stringify(toc));
+      if (toc.length || window.AndroidBridge || IS_IOS) {
+        reportTocToHost(JSON.stringify(toc));
       }
 
       // 代码高亮
@@ -213,10 +226,26 @@
         try { if (window.hljs) hljs.highlightElement(b); } catch (e) {}
       });
 
-      // 相对图片解析（尽力而为）
+      // 相对图片解析（尽力而为）。mdres: 加入排除表：iOS 改写过的 src 再次渲染时不重复编码。
+      // iOS 失败计数（fails）按本次 setMarkdown 累计、100ms 防抖合并上报一次，
+      // 供原生侧弹「授权所在文件夹」引导横幅。
+      var imgFails = 0;
       el.querySelectorAll('img').forEach(function (img) {
         var src = img.getAttribute('src') || '';
-        if (src && !/^(https?:|data:|file:|content:)/i.test(src) && window.AndroidBridge && window.AndroidBridge.resolveImage) {
+        if (!src || /^(https?:|data:|file:|content:|mdres:)/i.test(src)) return;
+        if (IS_IOS) {
+          // iOS：改写为自定义 scheme，由原生 WKURLSchemeHandler 解析相对路径并回源；
+          // 解析失败（未授权目录等）触发 onerror，与 Android 同样降级为 .broken 占位
+          img.addEventListener('error', function () {
+            this.classList.add('broken');
+            imgFails++;
+            clearTimeout(window.__mdImgFailTimer);
+            window.__mdImgFailTimer = setTimeout(function () {
+              try { window.webkit.messageHandlers.imgFailed.postMessage(imgFails); } catch (e) {}
+            }, 100);
+          });
+          img.src = 'mdres://' + encodeURIComponent(src);
+        } else if (window.AndroidBridge && window.AndroidBridge.resolveImage) {
           try {
             var resolved = window.AndroidBridge.resolveImage(src);
             if (resolved) img.src = resolved; else img.classList.add('broken');
@@ -313,7 +342,11 @@
     return count;
   };
 
-  if (window.AndroidBridge && window.AndroidBridge.onReady) window.AndroidBridge.onReady();
+  if (IS_IOS) {
+    try { window.webkit.messageHandlers.ready.postMessage(null); } catch (e) {}
+  } else if (window.AndroidBridge && window.AndroidBridge.onReady) {
+    window.AndroidBridge.onReady();
+  }
 </script>
 </body>
 </html>

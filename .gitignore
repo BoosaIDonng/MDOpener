@@ -16,3 +16,9 @@ local.properties
 
 # ZCode
 .zcode/plans/
+
+# iOS（.xcodeproj 为 XcodeGen 生成物，源是 ios/project.yml）
+ios/**/*.xcodeproj/
+ios/DerivedData/
+xcuserdata/
+*.ipa

@@ -1,23 +1,31 @@
 name: Build APK
 
-# 两种触发：
-# 1. PR 合并到 main 后触发（PR 合并本质是对 main 的一次 push）。
-#    只构建并上传 workflow artifact，供发版前验证。
+# 触发：
+# 1. push 到 main / dev 且安卓相关路径有改动（dev 触发用于施工期验证——本机无 Android SDK，
+#    所有构建验证依赖 CI；workflow_dispatch 需 workflow 文件先存在于默认分支，dev 期不可用）。
 # 2. 在 GitHub 上发布 Release（published）时触发。
 #    构建后自动把 APK 以 MD-Opener-<tag>.apk 与 MD-Opener-latest.apk 两个名字
 #    附到该 Release——发版时只需写好说明点发布，无需手动上传 APK。
+#    ios-v* tag 的 Release（iOS 里程碑，prerelease）不构建安卓、不挂 APK 资产。
 #    官网直链指向 releases/latest/download/MD-Opener-latest.apk，始终落到最新
-#    Release；旧 Release 里的同名资产无需删除，仅作历史存档。
+#    非 prerelease 的 Release；旧 Release 里的同名资产无需删除，仅作历史存档。
 on:
   push:
     branches:
       - main
+      - dev
+    paths:
+      - 'android/**'
+      - 'web/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
   release:
     types:
       - published
 
 jobs:
   build:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'ios-')
     runs-on: ubuntu-24.04
     permissions:
       contents: write  # release 事件时上传资产需要写权限
@@ -53,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: md-opener-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: android/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -63,7 +71,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          cd app/build/outputs/apk/release
-          cp app-release.apk "MD-Opener-${TAG}.apk"
-          cp app-release.apk MD-Opener-latest.apk
+          cd android/build/outputs/apk/release
+          cp android-release.apk "MD-Opener-${TAG}.apk"
+          cp android-release.apk MD-Opener-latest.apk
           gh release upload "$TAG" "MD-Opener-${TAG}.apk" MD-Opener-latest.apk --clobber

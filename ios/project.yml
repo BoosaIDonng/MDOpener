@@ -1,0 +1,61 @@
+name: MDOpener
+options:
+  bundleIdPrefix: com.honlnk
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MDOpener:
+    type: application
+    platform: iOS
+    sources:
+      - path: MDOpener
+      # 渲染资产以 folder reference 引用仓库根目录 web/（双端共享唯一来源），
+      # 构建后位于 bundle 内 web/ 子目录，viewer.html 的相对引用（marked.min.js 等）原样生效
+      - path: ../web
+        type: folder
+        buildPhase: resources
+    info:
+      path: MDOpener/Info.plist
+      properties:
+        CFBundleDisplayName: MD Opener
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # 文件关联：注册为 .md / .markdown / .mdown 的「打开方式」候选；
+        # 原地打开（不拷进 tmp Inbox），保留原始文件名与所在位置
+        LSSupportsOpeningDocumentsInPlace: true
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - net.daringfireball.markdown
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo:
+              - public.plain-text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - md
+                - markdown
+                - mdown
+              public.mime-type:
+                - text/markdown
+schemes:
+  MDOpener:
+    build:
+      targets:
+        MDOpener: all
+    run:
+      config: Debug
+    archive:
+      config: Release
