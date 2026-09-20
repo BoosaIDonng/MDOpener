@@ -98,6 +98,7 @@
       --accent: #A65A2E;
       --accent-soft: #F0E0BF;
       --green: #2e9e6b;
+      --danger: #C03B3B;
       --shadow: 0 1px 3px rgba(51,48,42,.05), 0 10px 30px rgba(51,48,42,.06);
     }
     @media (prefers-color-scheme: dark) {
@@ -112,6 +113,7 @@
         --accent: #D6A878;
         --accent-soft: #3A3128;
         --green: #7dc79c;
+        --danger: #E06B5F;
         --shadow: 0 1px 3px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
       }
     }
@@ -254,7 +256,22 @@
     .pro-unlocked { margin-top: 18px; padding: 18px; border: 1px solid var(--green); border-radius: 12px; background: var(--bg-soft); }
     .pro-unlocked .ttl { color: var(--green); font-weight: 700; }
     .pro-unlocked p { margin: 6px 0 14px; font-size: 13.5px; color: var(--text-soft); }
-    .key-clear { font-size: 12.5px; color: var(--text-soft); }
+    .pro-actions { display: flex; justify-content: center; margin-top: 4px; }
+    .pro-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+    .key-shown { font-size: 12.5px; color: var(--text-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .key-shown code { color: var(--text); background: var(--bg-code); padding: 2px 6px; border-radius: 6px; user-select: all; }
+    .key-clear { flex-shrink: 0; font-size: 12.5px; color: var(--text-soft); text-decoration: underline dotted; }
+    .key-clear:hover { color: var(--danger); }
+    .btn-danger { background: var(--danger); color: #FBF8F1; border-color: transparent; }
+    .btn-danger:hover { color: #FBF8F1; }
+    .modal-mask { position: fixed; inset: 0; z-index: 60; background: rgba(27,25,22,.55); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); max-width: 460px; width: 100%; padding: 24px; }
+    .modal h3 { margin: 0 0 10px; font-size: 18px; color: var(--heading); }
+    .modal p { font-size: 14px; line-height: 1.7; color: var(--text-soft); margin: 0 0 8px; }
+    .modal .warn { color: var(--danger); font-weight: 600; }
+    .modal-key { margin: 14px 0 0; padding: 10px 12px; background: var(--bg-code); border-radius: 10px; font-size: 13.5px; color: var(--text); text-align: center; user-select: all; letter-spacing: .03em; }
+    .modal-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .modal-btns .btn { padding: 10px 18px; font-size: 14.5px; }
     .pro-badge {
       display: inline-block; font-size: 12px; font-weight: 600;
       color: var(--accent); background: var(--accent-soft);
@@ -364,8 +381,11 @@
         <div class="pro-unlocked" id="pro-unlocked" hidden>
           <div class="ttl">✓ 专业版已解锁</div>
           <p>本浏览器已记住你的 key，下次访问无需重新输入。当前专业版与免费版为同一安装包，签名一致，可直接覆盖安装。</p>
-          <a class="btn btn-primary" id="pro-download" href="#">下载专业版 APK</a>
-          <p style="margin:12px 0 0;"><a href="#" class="key-clear" id="key-clear">清除本机保存的 key</a></p>
+          <div class="pro-actions"><a class="btn btn-primary" id="pro-download" href="#">下载专业版 APK</a></div>
+          <div class="pro-foot">
+            <span class="key-shown">本机 key <code id="key-shown"></code></span>
+            <a href="#" class="key-clear" id="key-clear">清除本机保存的 key</a>
+          </div>
         </div>
       </div>
     </div>
@@ -430,6 +450,20 @@
   </div>
 </footer>
 
+  <!-- 清除 key 前的确认弹窗 -->
+  <div class="modal-mask" id="clear-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
+      <h3 id="clear-modal-title">清除前，请先确认 key 已备份</h3>
+      <p>清除后本浏览器将忘记 key，重新解锁需要再次输入。<span class="warn">卡密遗失不补</span>，订单详情页是唯一的找回途径。</p>
+      <p class="modal-key" id="modal-key"></p>
+      <div class="modal-btns">
+        <button class="btn btn-primary" id="key-export" type="button">导出 key 到 txt 文件</button>
+        <button class="btn btn-danger" id="key-clear-confirm" type="button">确认清除</button>
+        <button class="btn btn-ghost" id="key-clear-cancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
 <script src="pro-keys.js"></script>
 <script>
   // —— 链接配置 ——
@@ -454,6 +488,7 @@
     function unlock() {
       lockedBox.hidden = true;
       unlockedBox.hidden = false;
+      fillKeyTexts();
     }
 
     document.getElementById('key-verify').addEventListener('click', () => {
@@ -468,9 +503,52 @@
     });
     keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('key-verify').click(); });
 
+    // 清除 key：强提示弹窗 + 一键导出 txt 备份
+    const clearModal = document.getElementById('clear-modal');
+    let currentKey = '';
+    function fillKeyTexts() {
+      try { currentKey = (localStorage.getItem(KEY_STORE) || '').trim(); } catch (e) { currentKey = ''; }
+      document.getElementById('key-shown').textContent = currentKey;
+      document.getElementById('modal-key').textContent = currentKey;
+    }
     document.getElementById('key-clear').addEventListener('click', e => {
       e.preventDefault();
+      fillKeyTexts();
+      clearModal.hidden = false;
+      document.getElementById('key-clear-confirm').focus();
+    });
+    function closeClearModal() { clearModal.hidden = true; }
+    document.getElementById('key-clear-cancel').addEventListener('click', closeClearModal);
+    clearModal.addEventListener('click', e => { if (e.target === clearModal) closeClearModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !clearModal.hidden) closeClearModal(); });
+    document.getElementById('key-export').addEventListener('click', () => {
+      if (!currentKey) return;
+      const content = [
+        'MD Opener 专业版 key 备份',
+        '',
+        'key：' + currentKey,
+        '导出时间：' + new Date().toLocaleString('zh-CN'),
+        '',
+        '使用方式：打开官网 https://mdopener.honlnk.com ，',
+        '在「专业版」板块输入此 key 即可解锁下载。',
+        'key 长期有效；请妥善保存本文件，卡密遗失不补。',
+        '',
+        '官网：https://mdopener.honlnk.com',
+        '源码：https://github.com/honlnk/MDOpener'
+      ].join('\r\n');
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MD-Opener-key.txt';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    document.getElementById('key-clear-confirm').addEventListener('click', () => {
       try { localStorage.removeItem(KEY_STORE); } catch (err) {}
+      closeClearModal();
       unlockedBox.hidden = true;
       lockedBox.hidden = false;
       keyInput.value = '';
