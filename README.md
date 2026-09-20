@@ -73,6 +73,7 @@ iOS 版不走 App Store，面向侧载场景：从 [Releases](https://github.com
 
 > 项目已配置国内镜像（Gradle 走腾讯云、Maven 走阿里云），国内网络可直接同步。
 > 合并到 main 后 GitHub Actions 会自动构建，使用固定发布密钥签名，产物可直接覆盖安装。
+> 没有本地构建环境（无 Mac / 无 SDK）也能参与开发，方法见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ```bash
 ./gradlew assembleRelease
