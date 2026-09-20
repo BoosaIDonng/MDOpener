@@ -255,7 +255,8 @@ MDOpener/
 - 2026-09-21 | 阶段② | `12c7213` + `78bc85c` | 首跑 35524618698 编译失败（可选元组不遵循 Equatable，MarkdownWebView.swift:94），拆字段判等修复后 35524805764 success；IPA 含 `Payload/MDOpener.app/web/`（folder reference 生效，viewer 相对引用可用）；viewer.html 改动后安卓回归 35524618646 绿 | 偏差 2 条：① 编码检测（DocumentLoader）提前并入②实现，③仅剩样张与验证——理由：代码独立且一次写好无拆分收益；② Info 补 `LSSupportsOpeningDocumentsInPlace: true`（构建警告 + 原地打开保留文件名，优于默认 tmp Inbox 拷贝）。
 - 2026-09-21 | 阶段③ | 随②提交 | GBK 样张 `test/fixtures/gbk-sample.md`（GB18030 实编码）入库；DocumentLoader 与 macOS 测试壳本机编译直跑：GB18030 / UTF-8 / BOM 三链路断言全过 | 无。真机「打开方式」拉起与最近文档体验留待用户复核（本机无 Xcode/模拟器，属计划内降级验证）。
 - 2026-09-21 | 阶段④ | `71627d8` | CI 35525066347 一次通过；viewer.html 改动后安卓回归 35525066310 绿 | 无。
-- 2026-09-21 | 阶段⑤ | `fd84261` + 交付提交 | CI 35525319184 一次通过；`ios-v0.1.0` prerelease Release 由 CI 挂载 `MD-Opener-ios-0.1.0.ipa` | 偏差 2 条：① release 资产名会拼成 `MD-Opener-ios-ios-v0.1.0.ipa`（TAG 自带前缀），已改为剥离 `ios-` 前缀再拼名；② 「自动打开」在 iOS 上实现为保存成功后弹系统分享面板（快速预览/存储/转发），与安卓「跳转 PDF 阅读器」语义近似而非逐字对齐。`---` 强制分页依赖打印 CSS（hr+* break-before），UIMarkupTextPrintFormatter 对该 CSS 的支持度属真机验证项。
+  - **真机核对单（用户侧执行）**：① 文件 App 长按 .md →「打开方式」→ MD Opener 能拉起并渲染；② 目录点击后正文滚动到位；③ 搜索实时高亮、计数正确、清除后高亮消失；④ 设置切深色后正文与外壳同步换色，字号/宽度即时生效；⑤ 相对图片：未授权时占位 + 横幅（每文档仅一次），「去授权」选文件夹后图片显示；⑥ GBK 样张（`test/fixtures/gbk-sample.md` 放入手机）打开不乱码。
+- 2026-09-21 | 阶段⑤ | `fd84261` + `5fc3f73` + tag `ios-v0.1.0` | CI 35525319184 一次通过；prerelease Release 已发（run 35525500948 success），资产 `MD-Opener-ios-v0.1.0.ipa`（228KB）；`releases/latest` 仍为安卓 v1.2.3 非预发布，官网 APK 直链 HTTP 200——官网零影响验收通过 | 偏差 2 条：① release 资产名原会拼成 `MD-Opener-ios-ios-v0.1.0.ipa`（TAG 自带前缀重复），已改为剥离 `ios-` 前缀再拼名；② 「自动打开」在 iOS 上实现为保存成功后弹系统分享面板（快速预览/存储/转发），与安卓「跳转 PDF 阅读器」语义近似而非逐字对齐。`---` 强制分页依赖打印 CSS（hr+* break-before），UIMarkupTextPrintFormatter 对该 CSS 的支持度属真机验证项。
 
 
 
