@@ -350,7 +350,7 @@
       <div class="pro-card">
         <div id="pro-locked">
           <div class="steps">
-            <div class="step"><div class="num">1</div><h3>支付 ¥5</h3><p>通过面包多购买专业版 key，支持微信 / 支付宝。</p></div>
+            <div class="step"><div class="num">1</div><h3>支付 ¥5</h3><p>跳转发卡平台购买专业版 key，微信 / 支付宝扫码付款。</p></div>
             <div class="step"><div class="num">2</div><h3>获得 key</h3><p>支付成功后 key 立即显示在订单页，形如 MDOP-XXXXX-XXXXX。</p></div>
             <div class="step"><div class="num">3</div><h3>回来解锁</h3><p>把 key 粘贴到下方输入框，验证通过即可下载专业版。</p></div>
           </div>
@@ -405,7 +405,7 @@
       </details>
       <details>
         <summary>专业版 key 丢了或换了浏览器怎么办？</summary>
-        <p>解锁状态只保存在当前浏览器本地。换浏览器或清理缓存后，回到本页重新输入 key 即可恢复下载。key 长期有效，请保留好面包多订单页里的 key。</p>
+        <p>解锁状态只保存在当前浏览器本地。换浏览器或清理缓存后，回到本页重新输入 key 即可恢复下载。key 长期有效，请保留好订单详情页里的 key（建议截图保存）。</p>
       </details>
       <details>
         <summary>支持把 Markdown 导出成 PDF 吗？</summary>
@@ -436,8 +436,8 @@
   // 专业版有了独立构建后，把 PRO_APK_URL 改为 .../download/MD-Opener-Pro-latest.apk
   const FREE_APK_URL = 'https://github.com/honlnk/MDOpener/releases/latest/download/MD-Opener-latest.apk';
   const PRO_APK_URL = FREE_APK_URL;
-  // TODO: 替换为面包多商品链接；留空时购买按钮提示「即将开通」
-  const BUY_URL = 'https://mbd.pub/o/bread/YZaVlpdubQ==';
+  // 链动小铺商品链接（买家付款后订单页自动发放唯一卡密）
+  const BUY_URL = 'https://wzyp.cn/item/c6jmfk';
   const KEY_STORE = 'mdopener_pro_key';
 
   // —— 专业版解锁（购买通道开放时恢复对应 DOM，这套逻辑即自动生效）——
