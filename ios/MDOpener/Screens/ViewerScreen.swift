@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 import UniformTypeIdentifiers
+import UIKit
 
 /// 查看器：正文渲染 + 页内搜索（实时命中计数）+ 目录跳转 + 相对图片授权横幅。
 /// 行为对齐安卓 ViewerScreen；PDF 导出入口在 ⑤ 接入。
@@ -22,6 +23,18 @@ struct ViewerScreen: View {
     @State private var bannerShownFor: UUID?
     @State private var showFolderPicker = false
     @State private var imageHandler = ImageSchemeHandler()
+
+    // PDF 导出（对齐安卓：对话框选项 → 打印态 → 落盘 → 选位置保存 → 可选自动打开）
+    @State private var showExportDialog = false
+    @State private var paper = PdfPaperSize.a4
+    @State private var keepBg = false
+    @State private var autoOpen = false
+    @State private var isExporting = false
+    @State private var pdfTmpUrl: URL?
+    @State private var exportedUrl: URL?
+    @State private var showExportPicker = false
+    @State private var showShare = false
+    @State private var statusMessage: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,10 +76,44 @@ struct ViewerScreen: View {
                     Image(systemName: "list.bullet")
                 }
                 .accessibilityLabel("目录")
+                Button {
+                    // 每次打开从持久化设置初始化选项（对齐安卓对话框语义）
+                    paper = PdfPaperSize.from(settings.pdfPaper)
+                    keepBg = settings.pdfKeepBackground
+                    autoOpen = settings.pdfAutoOpen
+                    showExportDialog = true
+                } label: {
+                    Image(systemName: "arrow.up.doc")
+                }
+                .accessibilityLabel("导出 PDF")
             }
         }
         .sheet(isPresented: $showToc) {
             tocSheet
+        }
+        .sheet(isPresented: $showExportDialog) {
+            exportDialog
+        }
+        .sheet(isPresented: $showExportPicker) {
+            if let url = pdfTmpUrl {
+                ExportPicker(url: url) { handleExportDone($0) }
+            }
+        }
+        .sheet(isPresented: $showShare) {
+            if let url = exportedUrl {
+                ShareSheet(items: [url])
+            }
+        }
+        .overlay(alignment: .bottom) {
+            statusOverlay
+        }
+        .overlay {
+            if isExporting {
+                ZStack {
+                    Color.black.opacity(0.2).ignoresSafeArea()
+                    ProgressView().tint(.white).scaleEffect(1.2)
+                }
+            }
         }
         // 文件夹授权：授予后解析基准目录生效，重新注入渲染让图片重新走 mdres 解析
         .fileImporter(isPresented: $showFolderPicker,
@@ -203,6 +250,115 @@ struct ViewerScreen: View {
             completionHandler: nil)
     }
 
+    // MARK: PDF 导出
+
+    private var exportDialog: some View {
+        NavigationView {
+            Form {
+                Section("纸张大小") {
+                    Picker("纸张", selection: $paper) {
+                        ForEach(PdfPaperSize.allCases) { p in
+                            Text(p.label).tag(p)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+                Section {
+                    Toggle("保留背景色", isOn: $keepBg)
+                    Text(keepBg ? "整页铺背景色，适合电子阅读" : "白底，适合打印（省墨）")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Toggle("自动打开", isOn: $autoOpen)
+                    Text("保存成功后弹出分享，可预览或转发")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("导出 PDF")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("取消") { showExportDialog = false }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("导出") { startExport() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func startExport() {
+        settings.pdfPaper = paper.rawValue
+        settings.pdfKeepBackground = keepBg
+        settings.pdfAutoOpen = autoOpen
+        showExportDialog = false
+        guard let wv = webView else { return }
+        isExporting = true
+        // 先切打印态（展开折叠/浅色/背景模式），再提取 HTML 分页排版
+        wv.evaluateJavaScript(
+            "window.preparePrint && window.preparePrint(\(keepBg))",
+            completionHandler: nil)
+        Task {
+            defer {
+                isExporting = false
+                wv.evaluateJavaScript(
+                    "window.restoreAfterPrint && window.restoreAfterPrint()",
+                    completionHandler: nil)
+            }
+            do {
+                pdfTmpUrl = try await PdfExporter.export(
+                    webView: wv, keepBackground: keepBg, paper: paper,
+                    suggestedName: suggestedPdfName(file.name))
+                showExportPicker = true
+            } catch {
+                statusMessage = "PDF 生成失败"
+                flashStatus()
+            }
+        }
+    }
+
+    private func handleExportDone(_ saved: URL?) {
+        showExportPicker = false
+        if let saved {
+            statusMessage = "PDF 已保存"
+            if autoOpen {
+                exportedUrl = saved
+                showShare = true
+            }
+        } else {
+            statusMessage = "已取消导出"
+        }
+        flashStatus()
+    }
+
+    @ViewBuilder
+    private var statusOverlay: some View {
+        if let msg = statusMessage {
+            Text(msg)
+                .font(.footnote.weight(.medium))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .padding(.bottom, 24)
+        }
+    }
+
+    private func flashStatus() {
+        Task {
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            statusMessage = nil
+        }
+    }
+
+    /// 导出建议文件名：文档名去扩展名加 .pdf（对齐安卓）
+    private func suggestedPdfName(_ fileName: String) -> String {
+        let base = (fileName as NSString).deletingPathExtension
+        return (base.isEmpty ? "document" : base) + ".pdf"
+    }
+
     // MARK: 正文
 
     @ViewBuilder
@@ -233,4 +389,51 @@ struct ViewerScreen: View {
             .id(file.id)
         }
     }
+}
+
+/// 系统导出选择器（存储到文件 / iCloud 等）；asCopy=true 由系统把临时 PDF 复制到所选位置。
+/// 对应安卓 ActivityResultContracts.CreateDocument 的「另存为」语义。
+struct ExportPicker: UIViewControllerRepresentable {
+    let url: URL
+    let onDone: (URL?) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDone)
+    }
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onDone: (URL?) -> Void
+
+        init(_ onDone: @escaping (URL?) -> Void) {
+            self.onDone = onDone
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController,
+                            didPickDocumentsAt urls: [URL]) {
+            onDone(urls.first)
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onDone(nil)
+        }
+    }
+}
+
+/// 分享面板（「自动打开」用：快速预览 / 存储到文件 / 隔空投送）
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
