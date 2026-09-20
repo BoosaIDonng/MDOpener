@@ -38,38 +38,31 @@
 
 ## 项目结构
 
+单仓库多平台（monorepo）：`web/` 为双端共享的渲染资产唯一来源，`android/` 与 `ios/` 分别为两端原生壳。
+
 ```
-app/src/main/
-├── AndroidManifest.xml          # 文件关联 intent-filter
-├── assets/                      # 前端渲染资源
-│   ├── viewer.html              # 渲染模板（含 callout 等 marked 扩展）
+├── android/src/main/              # 安卓工程（模块 :android）
+│   ├── AndroidManifest.xml        # 文件关联 intent-filter
+│   └── java/…/md_opener/app/
+│       ├── MainActivity.kt        # 入口，处理 VIEW/SEND Intent
+│       ├── MainViewModel.kt
+│       ├── core/                  # JsBridge / Store / UriHelpers / SiblingResolver
+│       └── ui/                    # AppRoot / Home / Viewer / Settings / 组件 / 主题
+├── web/                           # ★ 渲染资产（安卓打包为 assets，iOS 打包为 bundle 资源）
+│   ├── viewer.html                # 渲染模板（含 callout 等 marked 扩展，运行时探测 Android/iOS 桥）
 │   ├── marked.min.js
 │   ├── highlight.min.js
-│   ├── typewriter.css           # 正文排版
-│   ├── hljs-github.css          # 代码高亮（浅色）
-│   └── hljs-github-dark.css     # 代码高亮（深色）
-└── java/
-    ├── android/print/
-    │   └── PrintCallbackFactory.kt   # 打印回调工厂（绕开框架包私有构造限制）
-    └── com/honlnk/md_opener/app/
-        ├── MainActivity.kt      # 入口，处理 VIEW/SEND Intent
-        ├── MainViewModel.kt
-        ├── MarkdownOpenerApp.kt
-        ├── core/
-        │   ├── MarkdownJsBridge.kt  # Kotlin ↔ JS 桥接
-        │   ├── Store.kt             # DataStore 设置（阅读 + PDF 导出偏好）
-        │   ├── UriHelpers.kt        # Uri → 文件名 / 内容读取（含编码检测）
-        │   └── SiblingResolver.kt   # 相对图片路径解析
-        ├── model/Models.kt
-        └── ui/
-            ├── AppRoot.kt           # 导航根
-            ├── HomeScreen.kt        # 首页（大圆按钮选择文件）
-            ├── ViewerScreen.kt      # 查看器（目录 / 搜索 / 导出 PDF）
-            ├── SettingsScreen.kt    # 设置
-            ├── components/
-            │   ├── CompactTopAppBar.kt  # 紧凑头栏
-            │   └── MarkdownWebView.kt
-            └── theme/Theme.kt
+│   ├── typewriter.css             # 正文排版
+│   ├── hljs-github.css            # 代码高亮（浅色）
+│   └── hljs-github-dark.css       # 代码高亮（深色）
+├── ios/                           # iOS 工程（XcodeGen：project.yml 为源，xcodeproj 生成物不入库）
+│   └── MDOpener/
+│       ├── MDOpenerApp.swift      # 入口、onOpenURL
+│       ├── Screens/               # Home / Viewer / Settings
+│       └── Core/                  # WebView 封装 / 编码检测 / mdres:// 图片解析 / PDF 导出
+├── docs/                          # 官网（GitHub Pages 静态站）
+├── plans/                         # 开发计划与施工日志
+└── tools/                         # keygen 等工具
 ```
 
 ## 构建
@@ -81,7 +74,7 @@ app/src/main/
 ./gradlew assembleRelease
 ```
 
-产物路径：`app/build/outputs/apk/release/app-release.apk`
+产物路径：`android/build/outputs/apk/release/android-release.apk`
 
 要求：JDK 17+、Android SDK 34。
 

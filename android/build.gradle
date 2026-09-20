@@ -31,6 +31,14 @@ android {
         }
     }
 
+    // 渲染资产（viewer.html / marked / highlight.js / CSS）位于仓库根目录 web/，
+    // 与 iOS 工程共享同一来源；打包时仍作为 android_asset 打入 APK，加载路径不变。
+    sourceSets {
+        main {
+            assets.srcDirs += ['../web']
+        }
+    }
+
     buildTypes {
         release {
             // R8 压缩：v1.2.0 及之前未开启，安装包约 11MB（几乎全是未裁剪的字节码）；
