@@ -10,7 +10,9 @@ struct MarkdownWebView: UIViewRepresentable {
     let isDark: Bool
     let fontSize: Int
     let maxWidth: Int
+    let imageHandler: ImageSchemeHandler
     let onTocReady: ([TocItem]) -> Void
+    let onImagesFailed: () -> Void
     let onWebViewCreated: (WKWebView) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -21,6 +23,9 @@ struct MarkdownWebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.userContentController.add(context.coordinator, name: "toc")
         config.userContentController.add(context.coordinator, name: "ready")
+        config.userContentController.add(context.coordinator, name: "imgFailed")
+        // 相对图片经自定义 scheme 回到原生侧解析（对应安卓 AndroidBridge.resolveImage）
+        config.setURLSchemeHandler(imageHandler, forURLScheme: "mdres")
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
         webView.backgroundColor = .clear
@@ -74,6 +79,8 @@ struct MarkdownWebView: UIViewRepresentable {
                         return TocItem(id: id, text: text, level: o["level"] as? Int ?? 1)
                     })
                 }
+            case "imgFailed":
+                parent.onImagesFailed()
             default:
                 break
             }

@@ -5,7 +5,9 @@ import UniformTypeIdentifiers
 /// 视觉与交互对齐安卓 HomeScreen（呼吸动画 + 按压缩小）。
 struct HomeScreen: View {
     @ObservedObject var model: AppModel
+    let onSettings: () -> Void
     @State private var showPicker = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 24) {
@@ -18,6 +20,7 @@ struct HomeScreen: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.homeBg(colorScheme))
         .navigationTitle("MD Opener")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -30,6 +33,12 @@ struct HomeScreen: View {
                     }
                     .accessibilityLabel("重开最近文档")
                 }
+                Button {
+                    onSettings()
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("设置")
             }
         }
         // allowedContentTypes 取宽集合（对齐安卓 launch("*/*")）：
@@ -56,7 +65,7 @@ struct BigOpenButton: View {
                 .foregroundColor(.white)
                 .frame(width: 180, height: 180)
                 .background(
-                    Circle().fill(Color(red: 0.651, green: 0.353, blue: 0.180))
+                    Circle().fill(Theme.lightAccent)
                 )
         }
         .buttonStyle(PressScaleStyle())
