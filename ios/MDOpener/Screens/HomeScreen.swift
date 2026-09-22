@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 /// 首页：大圆按钮选择文件，右上角最近文档（仅本次运行有效）。
@@ -41,13 +42,12 @@ struct HomeScreen: View {
                 .accessibilityLabel("设置")
             }
         }
-        // allowedContentTypes 取宽集合（对齐安卓 launch("*/*")）：
-        // 部分来源的 .md 只带通用的 public.data 类型，窄过滤会让文件在选择器里变灰
-        .fileImporter(isPresented: $showPicker,
-                      allowedContentTypes: markdownContentTypes,
-                      allowsMultipleSelection: false) { result in
-            if case .success(let urls) = result, let url = urls.first {
+        .sheet(isPresented: $showPicker) {
+            MarkdownDocumentPicker { url in
+                showPicker = false
                 model.openUrl(url)
+            } onCancel: {
+                showPicker = false
             }
         }
     }
@@ -61,6 +61,53 @@ struct HomeScreen: View {
             .plainText,
             .data
         ]
+    }
+}
+
+/// UIKit's document picker accepts Files app provider URLs more reliably than SwiftUI's fileImporter.
+/// The app only reads Markdown, so import a local copy instead of retaining a provider URL.
+struct MarkdownDocumentPicker: UIViewControllerRepresentable {
+    let onPick: (URL) -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onPick: onPick, onCancel: onCancel)
+    }
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(
+            forOpeningContentTypes: [.item],
+            asCopy: true)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController,
+                                context: Context) {}
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onPick: (URL) -> Void
+        let onCancel: () -> Void
+
+        init(onPick: @escaping (URL) -> Void, onCancel: @escaping () -> Void) {
+            self.onPick = onPick
+            self.onCancel = onCancel
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController,
+                            didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else {
+                onCancel()
+                return
+            }
+            onPick(url)
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onCancel()
+        }
+
     }
 }
 

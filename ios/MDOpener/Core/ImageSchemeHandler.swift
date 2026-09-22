@@ -33,7 +33,7 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
         ioQueue.async { [weak self] in
             let resolved = Self.resolve(request: request, base: base)
             DispatchQueue.main.async { [weak self] in
-                guard let self, self.activeTasks.contains(id) else { return }
+                guard let self, self.activeTasks.remove(id) != nil else { return }
                 if let (data, mime) = resolved {
                     task.didReceive(URLResponse(url: request.url!, mimeType: mime,
                                                 expectedContentLength: data.count,
@@ -59,12 +59,25 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
         guard let rel = String(abs.dropFirst("mdres://".count)).removingPercentEncoding else {
             return nil
         }
-        let clean = rel.replacingOccurrences(of: "\\", with: "/")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "./"))
-        guard !clean.isEmpty, !clean.contains("..") else { return nil }
+        guard let clean = normalizeRelativePath(rel) else { return nil }
         let target = base.appendingPathComponent(clean)
         guard let data = try? Data(contentsOf: target) else { return nil }
         return (data, mime(forExtension: target.pathExtension))
+    }
+
+    private static func normalizeRelativePath(_ path: String) -> String? {
+        let normalized = path.replacingOccurrences(of: "\\", with: "/")
+        guard !normalized.isEmpty,
+              !normalized.hasPrefix("/"),
+              !normalized.contains("\0") else { return nil }
+
+        let components = normalized.split(separator: "/", omittingEmptySubsequences: true)
+        guard !components.isEmpty,
+              components.allSatisfy({ component in component != ".." }) else { return nil }
+
+        let cleanComponents = components.filter { component in component != "." }
+        guard !cleanComponents.isEmpty else { return nil }
+        return cleanComponents.map(String.init).joined(separator: "/")
     }
 
     private static func mime(forExtension ext: String) -> String {

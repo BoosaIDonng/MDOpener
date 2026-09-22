@@ -20,11 +20,11 @@ struct AppRoot: View {
     var body: some View {
         NavigationStack {
             Group {
-                if showSettings {
-                    SettingsScreen(settings: settings, onBack: { showSettings = false })
-                } else if let file = model.currentFile {
+                if let file = model.currentFile {
                     ViewerScreen(file: file, isDark: isDark, settings: settings,
                                  onClose: model.closeCurrent)
+                } else if showSettings {
+                    SettingsScreen(settings: settings, onBack: { showSettings = false })
                 } else {
                     HomeScreen(model: model, onSettings: { showSettings = true })
                 }
