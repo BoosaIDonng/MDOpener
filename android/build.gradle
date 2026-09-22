@@ -12,8 +12,8 @@ android {
         applicationId 'com.honlnk.md_opener.app'
         minSdk 24
         targetSdk 34
-        versionCode 11
-        versionName '1.2.3'
+        versionCode 12
+        versionName '1.2.4'
     }
 
     // release 签名：CI 注入 KEYSTORE_FILE/KEYSTORE_PASSWORD/KEY_ALIAS 时使用固定发布密钥，

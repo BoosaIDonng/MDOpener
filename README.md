@@ -87,7 +87,7 @@ iOS 版不走 App Store，面向侧载场景：从 [Releases](https://github.com
 
 ## 版本
 
-当前版本 **1.2.3**（versionCode 11）。
+当前版本 **1.2.4**（versionCode 12）。
 
 ## License
 

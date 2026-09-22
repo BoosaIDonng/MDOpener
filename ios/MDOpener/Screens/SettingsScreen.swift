@@ -51,6 +51,8 @@ struct SettingsScreen: View {
             Section {
                 LabeledContent("当前版本", value: "v\(appVersion)")
                 LabeledContent("分发方式", value: "侧载安装，更新见 GitHub Releases")
+                LabeledContent("备案号", value: "鲁ICP备2024069636号-3A")
+                Link("前往工信部备案系统查询", destination: URL(string: "https://beian.miit.gov.cn/")!)
             } header: {
                 Text("关于")
             }

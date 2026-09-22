@@ -51,17 +51,6 @@ struct HomeScreen: View {
             }
         }
     }
-
-    private var markdownContentTypes: [UTType] {
-        [
-            UTType(importedAs: "net.daringfireball.markdown", conformingTo: .plainText),
-            UTType(filenameExtension: "md") ?? .plainText,
-            UTType(filenameExtension: "markdown") ?? .plainText,
-            UTType(filenameExtension: "mdown") ?? .plainText,
-            .plainText,
-            .data
-        ]
-    }
 }
 
 /// UIKit's document picker accepts Files app provider URLs more reliably than SwiftUI's fileImporter.

@@ -33,6 +33,7 @@ import kotlin.math.roundToInt
 
 // 应用保持零联网权限，检查更新通过浏览器跳转实现，不在 App 内请求网络
 private const val RELEASES_URL = "https://github.com/honlnk/MDOpener/releases/latest"
+private const val BEIAN_URL = "https://beian.miit.gov.cn/"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,6 +137,23 @@ fun SettingsScreen(
                 }
             }) {
                 Text(stringResource(R.string.view_latest_release))
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.about), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${stringResource(R.string.app_filing)}：${stringResource(R.string.app_filing_number)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(BEIAN_URL)))
+                }
+            }) {
+                Text(stringResource(R.string.query_filing))
             }
         }
     }
