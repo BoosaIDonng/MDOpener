@@ -44,12 +44,23 @@ struct HomeScreen: View {
         // allowedContentTypes 取宽集合（对齐安卓 launch("*/*")）：
         // 部分来源的 .md 只带通用的 public.data 类型，窄过滤会让文件在选择器里变灰
         .fileImporter(isPresented: $showPicker,
-                      allowedContentTypes: [.data, .plainText],
+                      allowedContentTypes: markdownContentTypes,
                       allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first {
                 model.openUrl(url)
             }
         }
+    }
+
+    private var markdownContentTypes: [UTType] {
+        [
+            UTType(importedAs: "net.daringfireball.markdown", conformingTo: .plainText),
+            UTType(filenameExtension: "md") ?? .plainText,
+            UTType(filenameExtension: "markdown") ?? .plainText,
+            UTType(filenameExtension: "mdown") ?? .plainText,
+            .plainText,
+            .data
+        ]
     }
 }
 
