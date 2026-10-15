@@ -4,9 +4,9 @@ import Foundation
 /// BOM 嗅探 → UTF-8 严格校验 → GB18030 回退（覆盖 GBK / GB2312），中文老文件不乱码。
 enum DocumentLoader {
 
-    static func load(_ url: URL) -> String? {
-        // 文件 App /「打开方式」给到的 URL 可能是安全作用域资源，读取前需显式申请
-        let scoped = url.startAccessingSecurityScopedResource()
+    static func load(_ url: URL, securityScopeAlreadyOpen: Bool = false) -> String? {
+        // Keep the scope open when the caller acquired it before dispatching a background read.
+        let scoped = securityScopeAlreadyOpen ? false : url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url) else { return nil }
         return decode(data)
