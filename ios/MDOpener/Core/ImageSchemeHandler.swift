@@ -13,6 +13,12 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
     private var activeTasks = Set<ObjectIdentifier>()
     private let ioQueue = DispatchQueue(label: "mdres.io", qos: .userInitiated)
 
+    deinit {
+        if accessing, let baseDir {
+            baseDir.stopAccessingSecurityScopedResource()
+        }
+    }
+
     /// 切换基准目录（换文档 / 新授权时调用），负责旧作用域的释放
     func updateBase(_ dir: URL?) {
         if accessing, let old = baseDir {
@@ -60,13 +66,20 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
             return nil
         }
         guard let clean = normalizeRelativePath(rel) else { return nil }
-        let target = base.appendingPathComponent(clean)
+        let root = base.resolvingSymlinksInPath().standardizedFileURL
+        let target = root.appendingPathComponent(clean).resolvingSymlinksInPath().standardizedFileURL
+        let boundary = root.path.hasSuffix("/") ? root.path : root.path + "/"
+        guard target.path.hasPrefix(boundary) else { return nil }
         guard let data = try? Data(contentsOf: target) else { return nil }
         return (data, mime(forExtension: target.pathExtension))
     }
 
     private static func normalizeRelativePath(_ path: String) -> String? {
-        let normalized = path.replacingOccurrences(of: "\\", with: "/")
+        // 先剥离 URL 查询/锚点，再解码文件路径，保留文件名中编码过的 ? / #。
+        let urlPath = path.prefix { $0 != "?" && $0 != "#" }
+        // 未编码的百分号也可能是文件名的一部分（如 100%.png）。
+        let decoded = String(urlPath).removingPercentEncoding ?? String(urlPath)
+        let normalized = decoded.replacingOccurrences(of: "\\", with: "/")
         guard !normalized.isEmpty,
               !normalized.hasPrefix("/"),
               !normalized.contains("\0") else { return nil }

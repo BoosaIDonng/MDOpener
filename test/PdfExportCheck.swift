@@ -51,6 +51,7 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
             webView.loadFileURL(root.appendingPathComponent("web/viewer.html"),
                                 allowingReadAccessTo: root.appendingPathComponent("web"))
         }
+        try await checkCore(webView: webView, handler: handler, output: output, root: root)
         let paragraphs = (1...50).map {
             "PARA\(String(format: "%03d", $0)) Markdown PDF line check. 中文导出测试。 " +
             String(repeating: "A longer paragraph wraps across several lines. ", count: 3)
@@ -61,6 +62,10 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
         正文和代码样式应保留，文字可选择。
 
         ![local image](image.svg)
+
+        ![encoded image](Space%20%E5%9B%BE.svg?version=1#icon)
+
+        ![uppercase image](UPPER.svg)
 
         > [!NOTE]- Folded
         > FOLDEDMARKER must be included in the PDF.
@@ -127,6 +132,9 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
             }
             let after = try await webView.evaluateJavaScript(stateScript) as! String
             guard before == after else { throw fail("reading state not restored: \(before) -> \(after)") }
+            let imagesLoaded = try await webView.evaluateJavaScript(
+                "Array.from(document.images).every(img => img.complete && img.naturalWidth === 160)") as? Bool
+            guard imagesLoaded == true else { throw fail("WebKit image URL integration: \(paper)") }
             print("PASS \(paper.rawValue): \(pdf.pageCount) pages, \(text.count) characters")
         }
         // 在打印态布局期间制造异常，确保失败也恢复主题、折叠、宽度和滚动位置。
@@ -142,6 +150,31 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
         let ranges = PdfExporter.pageRanges(height: 250, pageHeight: 100,
                                             forcedBreaks: [0, 80, 80, 250], avoidBreaks: [90..<110])
         guard ranges == [0..<80, 80..<180, 180..<250] else { throw fail("unexpected page ranges: \(ranges)") }
+        _ = try await webView.evaluateJavaScript("delete document.getElementById('content').getBoundingClientRect;")
+        let codeLines = (1...160).map { "CODE\($0) = \"a line of code\"" }
+        let tableRows = (1...80).map { "| ROW\($0) | table content |" }
+        let longParagraph = (1...200).map { "WORD\($0)" }.joined(separator: " ")
+        let edgeCases: [(String, String, [String])] = [
+            ("short", "# SHORTMARKER\n\n中文短文。", ["SHORTMARKER"]),
+            ("long-code", "```swift\n" + codeLines.joined(separator: "\n") + "\n```", codeLines),
+            ("long-table", "| Key | Value |\n| --- | --- |\n" + tableRows.joined(separator: "\n") +
+             "\n\n" + longParagraph, (1...80).map { "ROW\($0)" } + [longParagraph])
+        ]
+        for (name, markdown, expected) in edgeCases {
+            let literal = String(data: try JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
+                                 encoding: .utf8)!
+            _ = try await webView.evaluateJavaScript("window.setMarkdown(\(literal));")
+            let url = try await PdfExporter.export(webView: webView, keepBackground: false,
+                                                   paper: .a4, suggestedName: "\(name).pdf")
+            guard let pdf = PDFDocument(url: url), pdf.pageCount > 0,
+                  name != "short" || pdf.pageCount == 1 else { throw fail("empty or wrong page count: \(name)") }
+            let text = normalize(pdf.string ?? "")
+            for value in expected {
+                guard text.contains(normalize(value)) else { throw fail("clipped PDF content: \(name), \(value.prefix(60))") }
+            }
+            try FileManager.default.copyItem(at: url, to: output.appendingPathComponent("\(name).pdf"))
+            print("PASS \(name): \(pdf.pageCount) pages")
+        }
     }
 
     private let stateScript = """
@@ -161,6 +194,80 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
             .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
     }
 
+    private func checkCore(webView: WKWebView, handler: ImageSchemeHandler, output: URL, root: URL) async throws {
+        var failures: [String] = []
+        func expect(_ condition: Bool, _ message: String) {
+            if !condition { failures.append(message); print("FAIL: \(message)") }
+        }
+        let plain = "中文 Markdown"
+        expect(DocumentLoader.decode(Data(plain.utf8)) == plain, "UTF-8 decode")
+        expect(DocumentLoader.decode(Data([0xef, 0xbb, 0xbf]) + Data(plain.utf8)) == plain, "UTF-8 BOM")
+        expect(DocumentLoader.decode(Data([0xff, 0xfe]) + plain.data(using: .utf16LittleEndian)!) == plain, "UTF-16 LE")
+        expect(DocumentLoader.decode(Data([0xfe, 0xff]) + plain.data(using: .utf16BigEndian)!) == plain, "UTF-16 BE")
+        let gbk = try Data(contentsOf: root.appendingPathComponent("test/fixtures/gbk-sample.md"))
+        expect(DocumentLoader.decode(gbk)?.contains("中文") == true, "GB18030 fixture")
+        expect(DocumentLoader.decode(Data()) == "", "empty Markdown")
+
+        let file = output.appendingPathComponent("model.md")
+        try "original".write(to: file, atomically: true, encoding: .utf8)
+        let model = AppModel()
+        model.openUrl(file)
+        // 模拟同一 URL 已经进入下一次打开：旧异步读取不能覆盖新一代文档状态。
+        let newer = OpenedFile(url: file, name: "model.md", content: "newer")
+        model.currentFile = newer
+        try await Task.sleep(nanoseconds: 150_000_000)
+        expect(model.currentFile?.id == newer.id && model.currentFile?.content == "newer",
+               "stale read overwrote a newer document at the same URL")
+        model.closeCurrent()
+        model.openUrl(output.appendingPathComponent("missing.md"))
+        try await Task.sleep(nanoseconds: 150_000_000)
+        expect(model.currentFile?.error == true, "missing document error")
+        model.closeCurrent()
+        expect(model.lastFile?.content != nil, "failed document replaced recent document")
+
+        let bytes = try Data(contentsOf: output.appendingPathComponent("image.svg"))
+        try bytes.write(to: output.appendingPathComponent("Space 图.svg"))
+        try bytes.write(to: output.appendingPathComponent("UPPER.svg"))
+        try bytes.write(to: output.appendingPathComponent("100%.svg"))
+        try bytes.write(to: output.appendingPathComponent("Hash#Question?.svg"))
+        try bytes.write(to: output.appendingPathComponent("literal%20.svg"))
+        for reference in ["./image.svg", "UPPER.svg", "Space%20%E5%9B%BE.svg", "image.svg?version=1#icon",
+                          "100%.svg", "100%25.svg", "Hash%23Question%3F.svg", "literal%2520.svg"] {
+            let loaded = await requestImage(reference, handler: handler, webView: webView)
+            expect(loaded == bytes, "relative image not resolved: \(reference)")
+        }
+        let outside = output.deletingLastPathComponent().appendingPathComponent(UUID().uuidString + ".svg")
+        try bytes.write(to: outside)
+        defer { try? FileManager.default.removeItem(at: outside) }
+        try FileManager.default.createSymbolicLink(at: output.appendingPathComponent("escape.svg"),
+                                                   withDestinationURL: outside)
+        let escaped = await requestImage("escape.svg", handler: handler, webView: webView)
+        expect(escaped == nil, "image symlink escaped the granted directory")
+        for reference in ["../image.svg", "%2E%2E/image.svg", "/image.svg", "image.svg%00"] {
+            let loaded = await requestImage(reference, handler: handler, webView: webView)
+            expect(loaded == nil, "unsafe image path accepted: \(reference)")
+        }
+        let cancelled = SchemeTask(url: schemeURL("image.svg")) { _ in }
+        handler.webView(webView, start: cancelled)
+        handler.webView(webView, stop: cancelled)
+        try await Task.sleep(nanoseconds: 50_000_000)
+        expect(!cancelled.finished, "cancelled scheme task received a callback")
+        if !failures.isEmpty { throw fail(failures.joined(separator: "; ")) }
+        print("PASS: encodings, stale document reads, image URLs, directory boundary and request cancellation")
+    }
+
+    private func schemeURL(_ reference: String) -> URL {
+        let safe = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_.!~*'()"))
+        return URL(string: "mdres://" + reference.addingPercentEncoding(withAllowedCharacters: safe)!)!
+    }
+
+    private func requestImage(_ reference: String, handler: ImageSchemeHandler, webView: WKWebView) async -> Data? {
+        await withCheckedContinuation { continuation in
+            let task = SchemeTask(url: schemeURL(reference)) { continuation.resume(returning: $0) }
+            handler.webView(webView, start: task)
+        }
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         self.navigation?.resume()
         self.navigation = nil
@@ -172,4 +279,20 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {}
+}
+
+private final class SchemeTask: NSObject, WKURLSchemeTask {
+    let request: URLRequest
+    private var data = Data()
+    private let completion: (Data?) -> Void
+    private(set) var finished = false
+
+    init(url: URL, completion: @escaping (Data?) -> Void) {
+        request = URLRequest(url: url)
+        self.completion = completion
+    }
+    func didReceive(_ response: URLResponse) {}
+    func didReceive(_ data: Data) { self.data.append(data) }
+    func didFinish() { finished = true; completion(data) }
+    func didFailWithError(_ error: Error) { finished = true; completion(nil) }
 }

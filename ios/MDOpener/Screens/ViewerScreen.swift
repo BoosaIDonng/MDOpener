@@ -26,6 +26,7 @@ struct ViewerScreen: View {
 
     // PDF 导出（对齐安卓：对话框选项 → 打印态 → 落盘 → 选位置保存 → 可选自动打开）
     @State private var showExportDialog = false
+    @State private var exportRequested = false
     @State private var paper = PdfPaperSize.a4
     @State private var keepBg = false
     @State private var autoOpen = false
@@ -70,12 +71,14 @@ struct ViewerScreen: View {
                     Image(systemName: "magnifyingglass")
                 }
                 .accessibilityLabel("搜索")
+                .disabled(isExporting || exportRequested)
                 Button {
                     showToc = true
                 } label: {
                     Image(systemName: "list.bullet")
                 }
                 .accessibilityLabel("目录")
+                .disabled(isExporting || exportRequested)
                 Button {
                     // 每次打开从持久化设置初始化选项（对齐安卓对话框语义）
                     paper = PdfPaperSize.from(settings.pdfPaper)
@@ -86,16 +89,24 @@ struct ViewerScreen: View {
                     Image(systemName: "arrow.up.doc")
                 }
                 .accessibilityLabel("导出 PDF")
-                .disabled(file.loading || file.error || isExporting)
+                .disabled(file.loading || file.error || isExporting || exportRequested)
             }
         }
         .sheet(isPresented: $showToc) {
             tocSheet
         }
-        .sheet(isPresented: $showExportDialog) {
+        .sheet(isPresented: $showExportDialog, onDismiss: {
+            guard exportRequested else { return }
+            exportRequested = false
+            startExport()
+        }) {
             exportDialog
         }
-        .sheet(isPresented: $showExportPicker) {
+        .sheet(isPresented: $showExportPicker, onDismiss: {
+            if autoOpen, exportedUrl != nil {
+                showShare = true
+            }
+        }) {
             if let url = pdfTmpUrl {
                 ExportPicker(url: url) { handleExportDone($0) }
             }
@@ -128,6 +139,7 @@ struct ViewerScreen: View {
             }
             imageHandler.updateBase(FolderGrantStore.load())
             showImageBanner = false
+            bannerShownFor = nil
             rerenderImages()
         }
     }
@@ -178,9 +190,9 @@ struct ViewerScreen: View {
                 } else {
                     List(toc) { item in
                         Button {
-                            // id 由 viewer.html 生成（h-N 形态），无注入面
+                            // 原始 HTML 标题可以自带 id，需像搜索词一样转为 JS 字面量。
                             webView?.evaluateJavaScript(
-                                "window.scrollToHeading && window.scrollToHeading('\(item.id)')",
+                                "window.scrollToHeading && window.scrollToHeading(\(item.id.jsLiteral))",
                                 completionHandler: nil)
                             showToc = false
                         } label: {
@@ -213,7 +225,7 @@ struct ViewerScreen: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("本文档包含相对路径图片")
                     .font(.footnote.weight(.medium))
-                Text("授权所在文件夹后可显示")
+                Text("请选择文档所在文件夹，并确认图片存在")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -239,16 +251,16 @@ struct ViewerScreen: View {
     private func handleImagesFailed() {
         guard bannerShownFor != file.id else { return }
         bannerShownFor = file.id
-        // 已有文件夹授权仍失败 → 文件确实缺失，不打扰
-        if FolderGrantStore.load() == nil {
-            showImageBanner = true
-        }
+        // 旧授权可能属于另一份文档，仍需提供选择当前文件夹的入口。
+        showImageBanner = true
     }
 
     private func rerenderImages() {
         webView?.evaluateJavaScript(
             "window.setMarkdown && window.setMarkdown(\((file.content ?? "").jsLiteral));",
-            completionHandler: nil)
+            completionHandler: { _, error in
+                if error == nil, showSearch { applyFind(query) }
+            })
     }
 
     // MARK: PDF 导出
@@ -283,7 +295,10 @@ struct ViewerScreen: View {
                     Button("取消") { showExportDialog = false }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("导出") { startExport() }
+                    Button("导出") {
+                        exportRequested = true
+                        showExportDialog = false
+                    }
                         .fontWeight(.semibold)
                 }
             }
@@ -295,8 +310,8 @@ struct ViewerScreen: View {
         settings.pdfPaper = paper.rawValue
         settings.pdfKeepBackground = keepBg
         settings.pdfAutoOpen = autoOpen
-        showExportDialog = false
         guard !isExporting, let wv = webView else { return }
+        exportedUrl = nil
         isExporting = true
         Task {
             defer { isExporting = false }
@@ -314,13 +329,14 @@ struct ViewerScreen: View {
 
     private func handleExportDone(_ saved: URL?) {
         showExportPicker = false
-        if let saved {
+        if saved != nil {
             statusMessage = "PDF 已保存"
             if autoOpen {
-                exportedUrl = saved
-                showShare = true
+                // 分享本地导出副本，避免系统选择器关闭后保存位置的访问权限失效。
+                exportedUrl = pdfTmpUrl
             }
         } else {
+            exportedUrl = nil
             statusMessage = "已取消导出"
         }
         flashStatus()

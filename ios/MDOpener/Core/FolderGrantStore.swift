@@ -14,8 +14,12 @@ enum FolderGrantStore {
                                  options: [],
                                  relativeTo: nil,
                                  bookmarkDataIsStale: &stale) else { return nil }
-        if stale, let renewed = try? url.bookmarkData() {
-            UserDefaults.standard.set(renewed, forKey: key)
+        if stale {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            if let renewed = try? url.bookmarkData() {
+                UserDefaults.standard.set(renewed, forKey: key)
+            }
         }
         return url
     }
