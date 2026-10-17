@@ -86,6 +86,7 @@ struct ViewerScreen: View {
                     Image(systemName: "arrow.up.doc")
                 }
                 .accessibilityLabel("导出 PDF")
+                .disabled(file.loading || file.error || isExporting)
             }
         }
         .sheet(isPresented: $showToc) {
@@ -295,26 +296,17 @@ struct ViewerScreen: View {
         settings.pdfKeepBackground = keepBg
         settings.pdfAutoOpen = autoOpen
         showExportDialog = false
-        guard let wv = webView else { return }
+        guard !isExporting, let wv = webView else { return }
         isExporting = true
-        // 先切打印态（展开折叠/浅色/背景模式），再提取 HTML 分页排版
-        wv.evaluateJavaScript(
-            "window.preparePrint && window.preparePrint(\(keepBg))",
-            completionHandler: nil)
         Task {
-            defer {
-                isExporting = false
-                wv.evaluateJavaScript(
-                    "window.restoreAfterPrint && window.restoreAfterPrint()",
-                    completionHandler: nil)
-            }
+            defer { isExporting = false }
             do {
                 pdfTmpUrl = try await PdfExporter.export(
                     webView: wv, keepBackground: keepBg, paper: paper,
                     suggestedName: suggestedPdfName(file.name))
                 showExportPicker = true
             } catch {
-                statusMessage = "PDF 生成失败"
+                statusMessage = "PDF 生成失败：\(error.localizedDescription)"
                 flashStatus()
             }
         }
