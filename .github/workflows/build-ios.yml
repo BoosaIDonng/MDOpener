@@ -12,16 +12,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 39091538007 -R BoosaIDonng/MDOpener --name pdf-options-ui-results --dir build/report.xcresult
+          gh run download 39092248605 -R BoosaIDonng/MDOpener --name pdf-options-ui-results --dir build/report.xcresult
           xcrun xcresulttool get test-results summary --path build/report.xcresult
-          xcrun xcresulttool export diagnostics --path build/report.xcresult --output-path build/diagnostics
           xcrun xcresulttool export attachments --path build/report.xcresult --output-path build/attachments
-          python3 -c 'from pathlib import Path; print("\n".join(str(p) for p in Path("build/diagnostics").rglob("*") if p.is_file()))'
+          python3 -c 'from pathlib import Path; [p.unlink() for p in Path("build/attachments").iterdir() if p.is_file() and p.suffix not in (".png", ".heic", ".jpg", ".txt", ".json")]'
       - name: Upload readable report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: readable-ui-report
           path: |
-            build/diagnostics
             build/attachments
