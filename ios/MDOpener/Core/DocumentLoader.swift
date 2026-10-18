@@ -8,8 +8,18 @@ enum DocumentLoader {
         // Keep the scope open when the caller acquired it before dispatching a background read.
         let scoped = securityScopeAlreadyOpen ? false : url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = readData(url) else { return nil }
         return decode(data)
+    }
+
+    /// 目录导入中的文件可能来自 iCloud / 文件提供者，由协调器按需获取内容。
+    static func readData(_ url: URL) -> Data? {
+        var data: Data?
+        var error: NSError?
+        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &error) { coordinated in
+            data = try? Data(contentsOf: coordinated)
+        }
+        return error == nil ? data : nil
     }
 
     static func decode(_ data: Data) -> String? {

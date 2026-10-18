@@ -13,6 +13,7 @@ struct MarkdownWebView: UIViewRepresentable {
     let imageHandler: ImageSchemeHandler
     let onTocReady: ([TocItem]) -> Void
     let onImagesFailed: () -> Void
+    let onReadingEnd: (Bool) -> Void
     let onWebViewCreated: (WKWebView) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -24,6 +25,9 @@ struct MarkdownWebView: UIViewRepresentable {
         config.userContentController.add(context.coordinator, name: "toc")
         config.userContentController.add(context.coordinator, name: "ready")
         config.userContentController.add(context.coordinator, name: "imgFailed")
+        config.userContentController.add(context.coordinator, name: "readingEnd")
+        config.userContentController.addUserScript(WKUserScript(
+            source: ReadingProgress.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         // 相对图片经自定义 scheme 回到原生侧解析（对应安卓 AndroidBridge.resolveImage）
         config.setURLSchemeHandler(imageHandler, forURLScheme: "mdres")
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -81,6 +85,8 @@ struct MarkdownWebView: UIViewRepresentable {
                 }
             case "imgFailed":
                 parent.onImagesFailed()
+            case "readingEnd":
+                if let atEnd = message.body as? Bool { parent.onReadingEnd(atEnd) }
             default:
                 break
             }

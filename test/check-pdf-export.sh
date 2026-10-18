@@ -6,6 +6,9 @@ swiftc -parse-as-library \
   "$root/ios/MDOpener/Model/Models.swift" \
   "$root/ios/MDOpener/Model/AppModel.swift" \
   "$root/ios/MDOpener/Core/DocumentLoader.swift" \
+  "$root/ios/MDOpener/Core/DocumentLibrary.swift" \
+  "$root/ios/MDOpener/Core/FolderGrantStore.swift" \
+  "$root/ios/MDOpener/Core/ReadingProgress.swift" \
   "$root/ios/MDOpener/Core/ImageSchemeHandler.swift" \
   "$root/ios/MDOpener/Core/PdfExporter.swift" \
   "$root/test/PdfExportCheck.swift" -o "$output/check"

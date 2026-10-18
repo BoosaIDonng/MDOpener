@@ -10,6 +10,10 @@ struct ViewerScreen: View {
     let file: OpenedFile
     let isDark: Bool
     @ObservedObject var settings: SettingsStore
+    let libraryRoot: URL?
+    let nextDocument: LibraryDocument?
+    let onShowDocuments: (() -> Void)?
+    let onNextDocument: (LibraryDocument) -> Void
     let onClose: () -> Void
 
     @State private var webView: WKWebView?
@@ -18,6 +22,8 @@ struct ViewerScreen: View {
     @State private var showSearch = false
     @State private var query = ""
     @State private var searchCount = 0
+    @State private var hasReachedEnd = false
+    @State private var dismissedNext = false
 
     // 相对图片授权横幅：每次打开的文档最多提示一次（对齐计划 §3.3 的非阻断约定）
     @State private var showImageBanner = false
@@ -61,6 +67,13 @@ struct ViewerScreen: View {
                 .accessibilityLabel("返回")
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
+                if let onShowDocuments {
+                    Button(action: onShowDocuments) {
+                        Image(systemName: "folder")
+                    }
+                    .accessibilityLabel("文件夹文档")
+                    .disabled(isExporting || exportRequested != nil)
+                }
                 Button {
                     showSearch.toggle()
                     if !showSearch {
@@ -90,6 +103,13 @@ struct ViewerScreen: View {
                 }
                 .accessibilityLabel("导出 PDF")
                 .disabled(file.loading || file.error || isExporting || exportRequested != nil)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if hasReachedEnd && !dismissedNext && !file.loading && !file.error,
+               let next = nextDocument {
+                nextDocumentPrompt(next)
+                    .disabled(isExporting || exportRequested != nil)
             }
         }
         .sheet(isPresented: $showToc) {
@@ -218,15 +238,21 @@ struct ViewerScreen: View {
             Image(systemName: "photo.on.rectangle.angled")
                 .foregroundColor(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text("本文档包含相对路径图片")
+                Text(libraryRoot == nil ? "本文档包含相对路径图片" : "部分图片未能读取")
                     .font(.footnote.weight(.medium))
-                Text("请选择文档所在文件夹，并确认图片存在")
+                Text(libraryRoot == nil ? "请选择文档所在文件夹，并确认图片存在" : "请确认图片存在，且已下载到本机")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
             Spacer()
-            Button("去授权") {
-                showFolderPicker = true
+            Button(libraryRoot == nil ? "去授权" : "重试") {
+                if libraryRoot == nil {
+                    showFolderPicker = true
+                } else {
+                    showImageBanner = false
+                    bannerShownFor = nil
+                    rerenderImages()
+                }
             }
             .font(.footnote.weight(.semibold))
             Button {
@@ -256,6 +282,25 @@ struct ViewerScreen: View {
             completionHandler: { _, error in
                 if error == nil, showSearch { applyFind(query) }
             })
+    }
+
+    private func nextDocumentPrompt(_ next: LibraryDocument) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("已读到文末，是否阅读下一篇？")
+                .font(.subheadline.weight(.medium))
+            Text(next.relativePath)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+            HStack {
+                Button("稍后") { dismissedNext = true }
+                Spacer()
+                Button("阅读下一篇") { onNextDocument(next) }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(12)
+        .background(.regularMaterial)
     }
 
     // MARK: PDF 导出
@@ -381,10 +426,18 @@ struct ViewerScreen: View {
                 imageHandler: imageHandler,
                 onTocReady: { toc = $0 },
                 onImagesFailed: { handleImagesFailed() },
+                onReadingEnd: { atEnd in
+                    // 提示出现后保持到用户操作，避免底部插入提示改变视口而反复闪烁。
+                    if atEnd && !isExporting { hasReachedEnd = true }
+                },
                 onWebViewCreated: { wv in
                     webView = wv
                     // 打开文档即挂载已授权的基准目录（如有）
-                    imageHandler.updateBase(FolderGrantStore.load())
+                    if let libraryRoot {
+                        imageHandler.updateBase(libraryRoot, relativeTo: file.url.deletingLastPathComponent())
+                    } else {
+                        imageHandler.updateBase(FolderGrantStore.load())
+                    }
                 }
             )
             // 换文档时整个 WebView 重建（对应安卓 remember(baseUri) 的桥随文档重建）

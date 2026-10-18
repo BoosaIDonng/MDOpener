@@ -26,10 +26,15 @@ struct PdfExportCheck {
 @MainActor
 private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private var navigation: CheckedContinuation<Void, Error>?
+    private var readingEvents: [Bool] = []
 
     func run() async throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
         let output = URL(fileURLWithPath: CommandLine.arguments[2])
+        let bookmarkKey = "document_library_bookmark"
+        let previousBookmark = UserDefaults.standard.object(forKey: bookmarkKey)
+        UserDefaults.standard.removeObject(forKey: bookmarkKey)
+        defer { UserDefaults.standard.set(previousBookmark, forKey: bookmarkKey) }
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
         let svg = "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='80'><rect width='160' height='80' fill='#ff0000'/></svg>"
         try svg.write(to: output.appendingPathComponent("image.svg"), atomically: true, encoding: .utf8)
@@ -37,9 +42,11 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
         handler.updateBase(output)
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(handler, forURLScheme: "mdres")
-        for name in ["ready", "toc", "imgFailed"] {
+        for name in ["ready", "toc", "imgFailed", "readingEnd"] {
             config.userContentController.add(self, name: name)
         }
+        config.userContentController.addUserScript(WKUserScript(
+            source: ReadingProgress.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 390, height: 700), configuration: config)
         let window = NSWindow(contentRect: webView.frame, styleMask: .borderless, backing: .buffered, defer: false)
         window.contentView = webView
@@ -52,6 +59,8 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
                                 allowingReadAccessTo: root.appendingPathComponent("web"))
         }
         try await checkCore(webView: webView, handler: handler, output: output, root: root)
+        try await checkLibrary(webView: webView, handler: handler, output: output)
+        try await checkReadingProgress(webView)
         let paragraphs = (1...50).map {
             "PARA\(String(format: "%03d", $0)) Markdown PDF line check. 中文导出测试。 " +
             String(repeating: "A longer paragraph wraps across several lines. ", count: 3)
@@ -268,6 +277,101 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
         return URL(string: "mdres://" + reference.addingPercentEncoding(withAllowedCharacters: safe)!)!
     }
 
+    private func checkLibrary(webView: WKWebView, handler: ImageSchemeHandler, output: URL) async throws {
+        let fm = FileManager.default
+        let folder = output.appendingPathComponent("文档库")
+        let paths = ["10.md", "2.MD", "子目录2/1.markdown", "子目录10/1.markdown", "3.mdown"]
+        for path in paths + ["ignored.txt", ".hidden.md", ".hidden/hidden.md", "archive.app/hidden.md"] {
+            let url = folder.appendingPathComponent(path)
+            try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try path.write(to: url, atomically: true, encoding: .utf8)
+        }
+        try fm.createSymbolicLink(at: folder.appendingPathComponent("linked.md"),
+                                  withDestinationURL: folder.appendingPathComponent("2.MD"))
+        try fm.createSymbolicLink(at: folder.appendingPathComponent("linked-folder"),
+                                  withDestinationURL: output)
+        let library = try DocumentLibrary.load(folder, securityScopeAlreadyOpen: false)
+        let expected = ["子目录2/1.markdown", "子目录10/1.markdown", "2.MD", "3.mdown", "10.md"]
+        guard library.documents.map(\.relativePath) == expected else {
+            throw fail("folder ordering / recursive filtering: \(library.documents.map(\.relativePath))")
+        }
+        let empty = output.appendingPathComponent("empty-folder")
+        try fm.createDirectory(at: empty, withIntermediateDirectories: true)
+        guard try DocumentLibrary.load(empty, securityScopeAlreadyOpen: false).documents.isEmpty else {
+            throw fail("empty folder produced documents")
+        }
+        let many = output.appendingPathComponent("many-documents")
+        try fm.createDirectory(at: many, withIntermediateDirectories: true)
+        for n in 1...1500 { try Data().write(to: many.appendingPathComponent("\(n).md")) }
+        let indexed = try DocumentLibrary.load(many, securityScopeAlreadyOpen: false)
+        guard indexed.documents.count == 1500, indexed.documents.first?.name == "1.md",
+              indexed.documents.last?.name == "1500.md" else { throw fail("large folder indexing") }
+
+        let model = AppModel()
+        model.importFolder(folder)
+        try await waitUntil { !model.isLoadingLibrary }
+        guard model.library?.documents == library.documents else { throw fail("folder model import") }
+        model.openLibraryDocument(library.documents[0])
+        try await waitUntil { model.currentFile?.loading == false }
+        guard model.currentFile?.content == expected[0], model.libraryDocumentIndex == 0,
+              model.nextLibraryDocument == library.documents[1] else { throw fail("folder open / next document") }
+        model.openLibraryDocument(library.documents.last!)
+        try await waitUntil { model.currentFile?.loading == false }
+        guard model.nextLibraryDocument == nil else { throw fail("last document has a next document") }
+        let unrelated = output.appendingPathComponent("unrelated.md")
+        model.openUrl(unrelated)
+        guard model.nextLibraryDocument == nil else { throw fail("standalone document joined the library") }
+        model.importFolder(output.appendingPathComponent("missing-folder"))
+        try await waitUntil { !model.isLoadingLibrary }
+        guard model.libraryError != nil, model.library?.documents == library.documents else {
+            throw fail("failed import discarded the previous library")
+        }
+        model.importFolder(empty)
+        model.importFolder(folder)
+        try await waitUntil { !model.isLoadingLibrary }
+        guard model.library?.documents == library.documents else { throw fail("stale folder scan overwrote latest import") }
+        let restored = AppModel()
+        try await waitUntil { !restored.isLoadingLibrary }
+        guard restored.library?.documents == library.documents else { throw fail("folder bookmark restore") }
+
+        let bytes = try Data(contentsOf: output.appendingPathComponent("image.svg"))
+        try fm.createDirectory(at: folder.appendingPathComponent("assets"), withIntermediateDirectories: true)
+        try bytes.write(to: folder.appendingPathComponent("assets/图片.svg"))
+        handler.updateBase(folder, relativeTo: folder.appendingPathComponent("子目录2"))
+        let inside = await requestImage("../assets/%E5%9B%BE%E7%89%87.svg", handler: handler, webView: webView)
+        let outside = await requestImage("../../image.svg", handler: handler, webView: webView)
+        guard inside == bytes, outside == nil else { throw fail("nested document image boundary") }
+        handler.updateBase(output)
+        print("PASS: recursive folder indexing (1500 documents), natural order, bookmarks, navigation and nested images")
+    }
+
+    private func checkReadingProgress(_ webView: WKWebView) async throws {
+        _ = try await webView.evaluateJavaScript("window.setMarkdown('# Start\\n\\n' + 'A paragraph.\\n\\n'.repeat(100)); window.scrollTo(0, 0);")
+        try await waitUntil { self.readingEvents.last == false }
+        readingEvents.removeAll()
+        // 导出临时滚动到文末时不能误触发阅读完成。
+        _ = try await webView.evaluateJavaScript("document.documentElement.classList.add('ios-pdf-export'); window.scrollTo(0, document.body.scrollHeight);")
+        try await Task.sleep(nanoseconds: 200_000_000)
+        guard readingEvents.isEmpty else { throw fail("export triggered a reading completion event") }
+        _ = try await webView.evaluateJavaScript("window.scrollTo(0, 0); document.documentElement.classList.remove('ios-pdf-export');")
+        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await webView.evaluateJavaScript("window.scrollTo(0, document.body.scrollHeight);")
+        try await waitUntil { self.readingEvents.last == true }
+        _ = try await webView.evaluateJavaScript("window.scrollTo(0, 0);")
+        try await waitUntil { self.readingEvents.last == false }
+        _ = try await webView.evaluateJavaScript("window.setMarkdown('# Short document');")
+        try await waitUntil { self.readingEvents.last == true }
+        print("PASS: reading end, scroll back, short document and PDF export suppression")
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        for _ in 0..<500 {
+            if condition() { return }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        throw fail("timed out waiting for asynchronous state")
+    }
+
     private func requestImage(_ reference: String, handler: ImageSchemeHandler, webView: WKWebView) async -> Data? {
         await withCheckedContinuation { continuation in
             let task = SchemeTask(url: schemeURL(reference)) { continuation.resume(returning: $0) }
@@ -285,7 +389,9 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
         self.navigation = nil
     }
 
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {}
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "readingEnd", let value = message.body as? Bool { readingEvents.append(value) }
+    }
 }
 
 private final class SchemeTask: NSObject, WKURLSchemeTask {

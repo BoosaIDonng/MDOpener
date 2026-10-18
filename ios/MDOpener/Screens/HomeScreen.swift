@@ -7,20 +7,17 @@ import UniformTypeIdentifiers
 struct HomeScreen: View {
     @ObservedObject var model: AppModel
     let onSettings: () -> Void
+    let onImportFolder: () -> Void
+    let onShowDocuments: () -> Void
     @State private var showPicker = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            BigOpenButton {
-                showPicker = true
+        GeometryReader { geometry in
+            ScrollView {
+                openOptions.frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-            Text("点击选择 Markdown 文件")
-                .foregroundColor(.secondary)
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.homeBg(colorScheme))
         .navigationTitle("MD Opener")
         .navigationBarTitleDisplayMode(.inline)
@@ -51,11 +48,50 @@ struct HomeScreen: View {
             }
         }
     }
+
+    private var openOptions: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            BigOpenButton {
+                showPicker = true
+            }
+            Text("点击选择 Markdown 文件")
+                .foregroundColor(.secondary)
+            Button(action: onImportFolder) {
+                Label("导入文件夹", systemImage: "folder.badge.plus")
+            }
+            .buttonStyle(.bordered)
+            if model.isLoadingLibrary {
+                ProgressView("正在读取文件夹…")
+            }
+            if let library = model.library {
+                Button(action: onShowDocuments) {
+                    VStack(spacing: 4) {
+                        Label(library.rootURL.lastPathComponent, systemImage: "folder")
+                            .lineLimit(1)
+                        Text("\(library.documents.count) 篇文档 · 查看列表")
+                            .font(.caption)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            if let error = model.libraryError {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            Spacer()
+        }
+    }
 }
 
 /// UIKit's document picker accepts Files app provider URLs more reliably than SwiftUI's fileImporter.
-/// The app only reads Markdown, so import a local copy instead of retaining a provider URL.
+/// 单文件拷入本地；文件夹原地打开以保留目录结构与相对图片。
 struct MarkdownDocumentPicker: UIViewControllerRepresentable {
+    var contentTypes: [UTType] = [.item]
+    var asCopy = true
     let onPick: (URL) -> Void
     let onCancel: () -> Void
 
@@ -65,8 +101,8 @@ struct MarkdownDocumentPicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(
-            forOpeningContentTypes: [.item],
-            asCopy: true)
+            forOpeningContentTypes: contentTypes,
+            asCopy: asCopy)
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         return picker

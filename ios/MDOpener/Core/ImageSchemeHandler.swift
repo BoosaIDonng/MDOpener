@@ -9,6 +9,7 @@ import WebKit
 final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private(set) var baseDir: URL?
+    private var documentDir: URL?
     private var accessing = false
     private var activeTasks = Set<ObjectIdentifier>()
     private let ioQueue = DispatchQueue(label: "mdres.io", qos: .userInitiated)
@@ -20,12 +21,13 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     /// 切换基准目录（换文档 / 新授权时调用），负责旧作用域的释放
-    func updateBase(_ dir: URL?) {
+    func updateBase(_ dir: URL?, relativeTo documentDir: URL? = nil) {
         if accessing, let old = baseDir {
             old.stopAccessingSecurityScopedResource()
             accessing = false
         }
         baseDir = dir
+        self.documentDir = documentDir ?? dir
         if let dir {
             accessing = dir.startAccessingSecurityScopedResource()
         }
@@ -36,8 +38,9 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
         activeTasks.insert(id)
         let request = task.request
         let base = baseDir
+        let document = documentDir
         ioQueue.async { [weak self] in
-            let resolved = Self.resolve(request: request, base: base)
+            let resolved = Self.resolve(request: request, root: base, document: document)
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.activeTasks.remove(id) != nil else { return }
                 if let (data, mime) = resolved {
@@ -59,18 +62,18 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     /// 从绝对串还原相对路径（不能用 url.host/path：host 会被小写化，丢失文件名大小写）
-    private static func resolve(request: URLRequest, base: URL?) -> (Data, String)? {
-        guard let base, let abs = request.url?.absoluteString,
+    private static func resolve(request: URLRequest, root: URL?, document: URL?) -> (Data, String)? {
+        guard let root, let document, let abs = request.url?.absoluteString,
               abs.hasPrefix("mdres://") else { return nil }
         guard let rel = String(abs.dropFirst("mdres://".count)).removingPercentEncoding else {
             return nil
         }
         guard let clean = normalizeRelativePath(rel) else { return nil }
-        let root = base.resolvingSymlinksInPath().standardizedFileURL
-        let target = root.appendingPathComponent(clean).resolvingSymlinksInPath().standardizedFileURL
-        let boundary = root.path.hasSuffix("/") ? root.path : root.path + "/"
+        let canonicalRoot = root.resolvingSymlinksInPath().standardizedFileURL
+        let target = document.appendingPathComponent(clean).resolvingSymlinksInPath().standardizedFileURL
+        let boundary = canonicalRoot.path.hasSuffix("/") ? canonicalRoot.path : canonicalRoot.path + "/"
         guard target.path.hasPrefix(boundary) else { return nil }
-        guard let data = try? Data(contentsOf: target) else { return nil }
+        guard let data = DocumentLoader.readData(target) else { return nil }
         return (data, mime(forExtension: target.pathExtension))
     }
 
@@ -85,9 +88,7 @@ final class ImageSchemeHandler: NSObject, WKURLSchemeHandler {
               !normalized.contains("\0") else { return nil }
 
         let components = normalized.split(separator: "/", omittingEmptySubsequences: true)
-        guard !components.isEmpty,
-              components.allSatisfy({ component in component != ".." }) else { return nil }
-
+        // 子文件夹文档可通过 ../ 引用已授权根目录内的资源；最终路径仍须通过根目录边界检查。
         let cleanComponents = components.filter { component in component != "." }
         guard !cleanComponents.isEmpty else { return nil }
         return cleanComponents.map(String.init).joined(separator: "/")

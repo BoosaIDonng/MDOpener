@@ -5,9 +5,7 @@ import Foundation
 /// 目录级访问必须由用户经文件夹选择器显式授予一次，此后跨会话有效。
 enum FolderGrantStore {
 
-    private static let key = "image_folder_bookmark"
-
-    static func load() -> URL? {
+    static func load(key: String = "image_folder_bookmark") -> URL? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         var stale = false
         guard let url = try? URL(resolvingBookmarkData: data,
@@ -24,14 +22,14 @@ enum FolderGrantStore {
         return url
     }
 
-    static func save(_ url: URL) {
+    static func save(_ url: URL, key: String = "image_folder_bookmark") {
         // 调用方须已 startAccessingSecurityScopedResource（iOS 上生成 bookmark 需在授权作用域内）
         if let data = try? url.bookmarkData() {
             UserDefaults.standard.set(data, forKey: key)
         }
     }
 
-    static func clear() {
+    static func clear(key: String = "image_folder_bookmark") {
         UserDefaults.standard.removeObject(forKey: key)
     }
 }
