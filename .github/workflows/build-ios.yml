@@ -41,6 +41,30 @@ jobs:
       - name: Generate Xcode project
         run: cd ios && xcodegen generate
 
+      - name: Diagnose PDF options on iOS simulator
+        run: |
+          xcrun simctl list devices available --json > /tmp/mdopener-simulators.json
+          DEVICE=$(python3 -c 'import json; d=json.load(open("/tmp/mdopener-simulators.json")); print(next(v["udid"] for k, vs in d["devices"].items() if "iOS" in k for v in vs if "iPhone" in v["name"]))')
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild test \
+            -project ios/MDOpener.xcodeproj \
+            -scheme MDOpener \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/pdf-options-ui.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            -quiet
+
+      - name: Upload UI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pdf-options-ui-results
+          path: build/pdf-options-ui.xcresult
+          if-no-files-found: warn
+
       - name: Build (unsigned)
         run: |
           xcodebuild \

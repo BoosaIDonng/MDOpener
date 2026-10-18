@@ -213,7 +213,7 @@ struct ViewerScreen: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
     }
 
     // MARK: 相对图片授权横幅（非阻断）
@@ -303,7 +303,7 @@ struct ViewerScreen: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
     }
 
     private func startExport() {
@@ -316,6 +316,10 @@ struct ViewerScreen: View {
         Task {
             defer { isExporting = false }
             do {
+                if ProcessInfo.processInfo.arguments.contains("--pdf-options-ui-test") {
+                    statusMessage = "PDF-OPTIONS: paper=\(paper.rawValue), background=\(keepBg), open=\(autoOpen)"
+                    return
+                }
                 pdfTmpUrl = try await PdfExporter.export(
                     webView: wv, keepBackground: keepBg, paper: paper,
                     suggestedName: suggestedPdfName(file.name))
