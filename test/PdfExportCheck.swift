@@ -109,6 +109,13 @@ private final class Check: NSObject, WKNavigationDelegate, WKScriptMessageHandle
             }
             let thumbnail = pdf.page(at: 0)!.thumbnail(of: CGSize(width: 600, height: 900), for: .mediaBox)
             let bitmap = NSBitmapImageRep(data: thumbnail.tiffRepresentation!)!
+            guard let corner = bitmap.colorAt(x: 10, y: 10)?.usingColorSpace(.sRGB) else {
+                throw fail("cannot read PDF background: \(paper)")
+            }
+            let hasWarmBackground = corner.redComponent - corner.blueComponent > 0.01
+            guard hasWarmBackground == (paper == .a5) else {
+                throw fail("PDF background option ignored: \(paper), \(corner)")
+            }
             try bitmap.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent("\(paper.rawValue)-thumb.png"))
             var redPixels = 0
             for y in stride(from: 0, to: bitmap.pixelsHigh, by: 4) {

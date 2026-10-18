@@ -30,6 +30,20 @@ struct TocItem: Identifiable, Equatable {
     let level: Int
 }
 
+/// 点击导出时固定本次选项，后续关闭弹窗、生成和保存均使用同一份值。
+struct PdfExportOptions: Equatable {
+    let paper: PdfPaperSize
+    let keepBackground: Bool
+    let autoOpen: Bool
+}
+
+/// 每次生成的文件有独立身份，系统保存窗口直接接收对应文件和选项。
+struct ExportedPdf: Identifiable {
+    let id = UUID()
+    let url: URL
+    let options: PdfExportOptions
+}
+
 /// PDF 导出纸张大小（rawValue 持久化到 UserDefaults，尺寸映射在 PdfExporter 做）
 enum PdfPaperSize: String, CaseIterable, Identifiable {
     case a4 = "a4"
