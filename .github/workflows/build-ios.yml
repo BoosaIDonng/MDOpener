@@ -42,6 +42,7 @@ jobs:
         run: cd ios && xcodegen generate
 
       - name: Diagnose PDF options on iOS simulator
+        timeout-minutes: 12
         run: |
           xcrun simctl list devices available --json > /tmp/mdopener-simulators.json
           DEVICE=$(python3 -c 'import json; d=json.load(open("/tmp/mdopener-simulators.json")); print(next(v["udid"] for k, vs in d["devices"].items() if "iOS" in k for v in vs if "iPhone" in v["name"]))')
@@ -50,12 +51,12 @@ jobs:
           xcodebuild test \
             -project ios/MDOpener.xcodeproj \
             -scheme MDOpener \
-            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -destination "platform=iOS Simulator,id=$DEVICE,arch=arm64" \
             -parallel-testing-enabled NO \
             -resultBundlePath build/pdf-options-ui.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            -quiet
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 90
 
       - name: Upload UI diagnostics
         if: always()
