@@ -406,6 +406,42 @@ struct ExportPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
         picker.delegate = context.coordinator
+        // Diagnostic branch only: inspect the real file handed to UIKit and simulate a successful provider callback.
+        if ProcessInfo.processInfo.arguments.contains("--pdf-options-ui-test") {
+            let panel = UIStackView()
+            panel.axis = .vertical
+            panel.backgroundColor = .systemBackground
+            panel.translatesAutoresizingMaskIntoConstraints = false
+            let info = UILabel()
+            info.accessibilityIdentifier = "pdf-generated-info"
+            if let document = CGPDFDocument(url as CFURL), let page = document.page(at: 1) {
+                var pixel = [UInt8](repeating: 0, count: 4)
+                let warm = pixel.withUnsafeMutableBytes { bytes -> Bool in
+                    guard let cg = CGContext(data: bytes.baseAddress, width: 1, height: 1,
+                                             bitsPerComponent: 8, bytesPerRow: 4,
+                                             space: CGColorSpaceCreateDeviceRGB(),
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+                    cg.translateBy(x: -10, y: -10)
+                    cg.drawPDFPage(page)
+                    return Int(bytes[0]) - Int(bytes[2]) > 3
+                }
+                info.text = "PDF-FILE: width=\(Int(page.getBoxRect(.mediaBox).width.rounded())), warm=\(warm)"
+            } else {
+                info.text = "PDF-FILE: invalid"
+            }
+            let save = UIButton(type: .system)
+            save.setTitle("Test save completed", for: .normal)
+            save.accessibilityIdentifier = "pdf-test-save"
+            save.addAction(UIAction { _ in context.coordinator.onDone(url) }, for: .touchUpInside)
+            panel.addArrangedSubview(info)
+            panel.addArrangedSubview(save)
+            picker.view.addSubview(panel)
+            NSLayoutConstraint.activate([
+                panel.leadingAnchor.constraint(equalTo: picker.view.leadingAnchor, constant: 16),
+                panel.trailingAnchor.constraint(equalTo: picker.view.trailingAnchor, constant: -16),
+                panel.topAnchor.constraint(equalTo: picker.view.safeAreaLayoutGuide.topAnchor, constant: 60)
+            ])
+        }
         return picker
     }
 
