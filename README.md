@@ -30,7 +30,7 @@
 
 ### iOS（侧载版）
 
-本 fork 的首个 iOS 正式版为 **1.0.0**（build 2），支持 **iOS 16.0 及以上**。从 [本仓库 Releases](https://github.com/BoosaIDonng/MDOpener/releases/latest) 下载 `MD-Opener-ios-v1.0.0.ipa`。
+本 fork 的 iOS 当前正式版为 **1.0.1**（build 3），支持 **iOS 16.0 及以上**。从 [本仓库 Releases](https://github.com/BoosaIDonng/MDOpener/releases/latest) 下载 `MD-Opener-ios-v1.0.1.ipa`。
 
 安装包未签名，需通过支持的重签/侧载工具安装，不通过 App Store 分发。相对路径图片需在提示时授权文档所在文件夹；切换到其他文件夹的文档时，可重新选择对应文件夹。
 
@@ -89,7 +89,7 @@
 
 ## 版本
 
-Android 当前版本 **1.2.4**（versionCode 12）；本 fork 的 iOS 当前版本 **1.0.0**（build 2）。
+Android 当前版本 **1.2.4**（versionCode 12）；本 fork 的 iOS 当前版本 **1.0.1**（build 3）。
 
 ## License
 

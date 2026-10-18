@@ -3,7 +3,6 @@ name: Build IPA
 # iOS 构建交付链路（无签名 IPA，交付后由用户侧重签侧载，见 plans/ios-v1.md §3.4）：
 # 1. push 到 main / dev 且 ios/、web/ 有改动时构建验证（本机无 Xcode，所有编译验证依赖 CI）。
 # 2. 发布 ios-v* tag 的 Release（published）时构建并附 MD-Opener-ios-<tag>.ipa。
-#    仅作为 prerelease 里程碑使用，不进入 releases/latest（官网 APK 直链依赖 latest，勿改成正式版）。
 on:
   push:
     branches:
