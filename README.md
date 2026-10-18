@@ -2,6 +2,8 @@
 
 > 官网：[mdopener.honlnk.com](https://mdopener.honlnk.com)
 
+> **下载请前往原作者仓库**：本 fork 用于协助 iOS 开发与测试，不再单独提供发行版。Android / iOS 正式安装包统一在 [原作者 GitHub Releases](https://github.com/honlnk/MDOpener/releases/latest) 下载。
+
 一个轻量、纯粹的 Android Markdown 查看器。装上之后，在任意文件管理器里点击 `.md` / `.markdown` / `.mdown` 文件，即可用本应用打开并查看渲染后的内容。
 
 无联网权限、无广告、无后台行为——只做一件事：把 Markdown 漂亮地显示出来。
@@ -26,11 +28,11 @@
 
 ## 下载
 
-在 [GitHub Releases](https://github.com/honlnk/MDOpener/releases) 下载最新 APK，签名固定，可直接覆盖安装。
+请前往 [原作者 GitHub Releases](https://github.com/honlnk/MDOpener/releases/latest) 下载正式版。Android 下载 `.apk`，iPhone / iPad 下载 `.ipa`；本 fork 的历史发行版已下线。
 
 ### iOS（侧载版）
 
-本 fork 的 iOS 当前正式版为 **1.0.1**（build 3），支持 **iOS 16.0 及以上**。从 [本仓库 Releases](https://github.com/BoosaIDonng/MDOpener/releases/latest) 下载 `MD-Opener-ios-v1.0.1.ipa`。
+支持 **iOS 16.0 及以上**。请从 [原作者最新发布页](https://github.com/honlnk/MDOpener/releases/latest) 下载 iOS 安装包，版本及安装说明以该发布页为准。
 
 安装包未签名，需通过支持的重签/侧载工具安装，不通过 App Store 分发。相对路径图片需在提示时授权文档所在文件夹；切换到其他文件夹的文档时，可重新选择对应文件夹。
 
@@ -89,7 +91,7 @@
 
 ## 版本
 
-Android 当前版本 **1.2.4**（versionCode 12）；本 fork 的 iOS 当前版本 **1.0.1**（build 3）。
+正式版本与安装包统一由原作者发布，请以 [原作者最新发布页](https://github.com/honlnk/MDOpener/releases/latest) 为准。
 
 ## License
 
