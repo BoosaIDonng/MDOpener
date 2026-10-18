@@ -2,6 +2,7 @@ import SwiftUI
 import WebKit
 import UniformTypeIdentifiers
 import UIKit
+import QuickLook
 
 /// 查看器：正文渲染 + 页内搜索（实时命中计数）+ 目录跳转 + 相对图片授权横幅。
 /// 行为对齐安卓 ViewerScreen；PDF 导出入口在 ⑤ 接入。
@@ -26,15 +27,14 @@ struct ViewerScreen: View {
 
     // PDF 导出（对齐安卓：对话框选项 → 打印态 → 落盘 → 选位置保存 → 可选自动打开）
     @State private var showExportDialog = false
-    @State private var exportRequested = false
+    @State private var exportRequested: PdfExportOptions?
     @State private var paper = PdfPaperSize.a4
     @State private var keepBg = false
     @State private var autoOpen = false
     @State private var isExporting = false
-    @State private var pdfTmpUrl: URL?
-    @State private var exportedUrl: URL?
-    @State private var showExportPicker = false
-    @State private var showShare = false
+    @State private var exportedPdf: ExportedPdf?
+    @State private var pendingPreviewUrl: URL?
+    @State private var previewUrl: URL?
     @State private var statusMessage: String?
 
     var body: some View {
@@ -71,14 +71,14 @@ struct ViewerScreen: View {
                     Image(systemName: "magnifyingglass")
                 }
                 .accessibilityLabel("搜索")
-                .disabled(isExporting || exportRequested)
+                .disabled(isExporting || exportRequested != nil)
                 Button {
                     showToc = true
                 } label: {
                     Image(systemName: "list.bullet")
                 }
                 .accessibilityLabel("目录")
-                .disabled(isExporting || exportRequested)
+                .disabled(isExporting || exportRequested != nil)
                 Button {
                     // 每次打开从持久化设置初始化选项（对齐安卓对话框语义）
                     paper = PdfPaperSize.from(settings.pdfPaper)
@@ -89,33 +89,28 @@ struct ViewerScreen: View {
                     Image(systemName: "arrow.up.doc")
                 }
                 .accessibilityLabel("导出 PDF")
-                .disabled(file.loading || file.error || isExporting || exportRequested)
+                .disabled(file.loading || file.error || isExporting || exportRequested != nil)
             }
         }
         .sheet(isPresented: $showToc) {
             tocSheet
         }
         .sheet(isPresented: $showExportDialog, onDismiss: {
-            guard exportRequested else { return }
-            exportRequested = false
-            startExport()
+            guard let options = exportRequested else { return }
+            exportRequested = nil
+            startExport(options: options)
         }) {
             exportDialog
         }
-        .sheet(isPresented: $showExportPicker, onDismiss: {
-            if autoOpen, exportedUrl != nil {
-                showShare = true
+        .sheet(item: $exportedPdf, onDismiss: {
+            if let url = pendingPreviewUrl {
+                pendingPreviewUrl = nil
+                previewUrl = url
             }
-        }) {
-            if let url = pdfTmpUrl {
-                ExportPicker(url: url) { handleExportDone($0) }
-            }
+        }) { document in
+            ExportPicker(url: document.url) { handleExportDone($0, document: document) }
         }
-        .sheet(isPresented: $showShare) {
-            if let url = exportedUrl {
-                ShareSheet(items: [url])
-            }
-        }
+        .quickLookPreview($previewUrl)
         .overlay(alignment: .bottom) {
             statusOverlay
         }
@@ -279,11 +274,11 @@ struct ViewerScreen: View {
                 }
                 Section {
                     Toggle("保留背景色", isOn: $keepBg)
-                    Text(keepBg ? "整页铺背景色，适合电子阅读" : "白底，适合打印（省墨）")
+                    Text(keepBg ? "整页保留暖纸背景色，适合电子阅读" : "白底，适合打印（省墨）")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Toggle("自动打开", isOn: $autoOpen)
-                    Text("保存成功后弹出分享，可预览或转发")
+                    Text("保存成功后直接预览 PDF")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -296,7 +291,8 @@ struct ViewerScreen: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("导出") {
-                        exportRequested = true
+                        exportRequested = PdfExportOptions(paper: paper, keepBackground: keepBg,
+                                                           autoOpen: autoOpen)
                         showExportDialog = false
                     }
                         .fontWeight(.semibold)
@@ -306,24 +302,20 @@ struct ViewerScreen: View {
         .presentationDetents([.large])
     }
 
-    private func startExport() {
-        settings.pdfPaper = paper.rawValue
-        settings.pdfKeepBackground = keepBg
-        settings.pdfAutoOpen = autoOpen
+    private func startExport(options: PdfExportOptions) {
         guard !isExporting, let wv = webView else { return }
-        exportedUrl = nil
+        settings.pdfPaper = options.paper.rawValue
+        settings.pdfKeepBackground = options.keepBackground
+        settings.pdfAutoOpen = options.autoOpen
+        pendingPreviewUrl = nil
         isExporting = true
         Task {
             defer { isExporting = false }
             do {
-                if ProcessInfo.processInfo.arguments.contains("--pdf-options-ui-test") {
-                    statusMessage = "PDF-OPTIONS: paper=\(paper.rawValue), background=\(keepBg), open=\(autoOpen)"
-                    return
-                }
-                pdfTmpUrl = try await PdfExporter.export(
-                    webView: wv, keepBackground: keepBg, paper: paper,
+                let url = try await PdfExporter.export(
+                    webView: wv, keepBackground: options.keepBackground, paper: options.paper,
                     suggestedName: suggestedPdfName(file.name))
-                showExportPicker = true
+                exportedPdf = ExportedPdf(url: url, options: options)
             } catch {
                 statusMessage = "PDF 生成失败：\(error.localizedDescription)"
                 flashStatus()
@@ -331,18 +323,16 @@ struct ViewerScreen: View {
         }
     }
 
-    private func handleExportDone(_ saved: URL?) {
-        showExportPicker = false
+    private func handleExportDone(_ saved: URL?, document: ExportedPdf) {
         if saved != nil {
             statusMessage = "PDF 已保存"
-            if autoOpen {
-                // 分享本地导出副本，避免系统选择器关闭后保存位置的访问权限失效。
-                exportedUrl = pdfTmpUrl
-            }
+            // 预览本地副本，避免系统选择器关闭后保存位置的访问权限失效。
+            pendingPreviewUrl = document.options.autoOpen ? document.url : nil
         } else {
-            exportedUrl = nil
+            pendingPreviewUrl = nil
             statusMessage = "已取消导出"
         }
+        exportedPdf = nil
         flashStatus()
     }
 
@@ -437,15 +427,4 @@ struct ExportPicker: UIViewControllerRepresentable {
             onDone(nil)
         }
     }
-}
-
-/// 分享面板（「自动打开」用：快速预览 / 存储到文件 / 隔空投送）
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
