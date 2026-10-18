@@ -23,6 +23,8 @@ struct AppRoot: View {
                 if let file = model.currentFile {
                     ViewerScreen(file: file, isDark: isDark, settings: settings,
                                  onClose: model.closeCurrent)
+                        // 外部连续打开文档时，搜索、目录、图片横幅和导出状态也需重置。
+                        .id(file.id)
                 } else if showSettings {
                     SettingsScreen(settings: settings, onBack: { showSettings = false })
                 } else {

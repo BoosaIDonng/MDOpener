@@ -14,7 +14,8 @@ final class AppModel: ObservableObject {
         let name = url.lastPathComponent.isEmpty ? "document.md" : url.lastPathComponent
         // Acquire the Files app's security scope before the async task leaves the importer callback.
         let scoped = url.startAccessingSecurityScopedResource()
-        currentFile = OpenedFile(url: url, name: name, loading: true, external: external)
+        let opening = OpenedFile(url: url, name: name, loading: true, external: external)
+        currentFile = opening
         // 读取与编码检测在后台线程，避免大文档卡 UI
         Task.detached(priority: .userInitiated) { [weak self] in
             defer {
@@ -24,7 +25,8 @@ final class AppModel: ObservableObject {
             }
             let content = DocumentLoader.load(url, securityScopeAlreadyOpen: scoped)
             await MainActor.run { [weak self] in
-                guard let self, let cur = self.currentFile, cur.url == url else { return }
+                // 同一路径可以被关闭、重开；只接收本次打开请求的结果。
+                guard let self, let cur = self.currentFile, cur.id == opening.id else { return }
                 if let content {
                     self.currentFile = OpenedFile(
                         url: url, name: cur.name, content: content, external: cur.external)
