@@ -16,6 +16,22 @@ final class AppModel: ObservableObject {
     private static let libraryBookmarkKey = "document_library_bookmark"
 
     init() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--folder-reading-ui-test") {
+            let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("文件夹阅读测试")
+            do {
+                try FileManager.default.createDirectory(at: root.appendingPathComponent("子目录"),
+                                                        withIntermediateDirectories: true)
+                let paragraphs = (1...45).map { "第\($0)段：文件夹阅读测试，向下滚动以阅读下一篇文档。" }.joined(separator: "\n\n")
+                try ("# 第一篇\n\n" + paragraphs).write(to: root.appendingPathComponent("1.md"), atomically: true, encoding: .utf8)
+                try ("# 第二篇\n\n" + paragraphs).write(to: root.appendingPathComponent("2.md"), atomically: true, encoding: .utf8)
+                try "# 最后一篇\n\n短文。".write(to: root.appendingPathComponent("子目录/10.md"), atomically: true, encoding: .utf8)
+                importFolder(root)
+            } catch { libraryError = error.localizedDescription }
+            return
+        }
+        #endif
         if let root = FolderGrantStore.load(key: Self.libraryBookmarkKey) {
             importFolder(root)
         }

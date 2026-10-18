@@ -40,6 +40,32 @@ jobs:
       - name: Generate Xcode project
         run: cd ios && xcodegen generate
 
+      - name: Check folder reading on iOS simulator
+        timeout-minutes: 12
+        run: |
+          xcrun simctl list devices available --json > /tmp/mdopener-simulators.json
+          DEVICE=$(python3 -c 'import json; d=json.load(open("/tmp/mdopener-simulators.json")); print(next(v["udid"] for k, vs in d["devices"].items() if "iOS" in k for v in vs if "iPhone" in v["name"]))')
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild test \
+            -project ios/MDOpener.xcodeproj \
+            -scheme MDOpener \
+            -destination "platform=iOS Simulator,id=$DEVICE,arch=arm64" \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/folder-reading-ui.xcresult \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 180 \
+            -maximum-test-execution-time-allowance 240 \
+            IPHONEOS_DEPLOYMENT_TARGET=18.4
+
+      - name: Upload UI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: folder-reading-ui-results
+          path: build/folder-reading-ui.xcresult
+          if-no-files-found: warn
+
       - name: Build (unsigned)
         run: |
           xcodebuild \

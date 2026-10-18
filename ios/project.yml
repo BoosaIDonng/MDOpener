@@ -50,6 +50,17 @@ targets:
                 - mdown
               public.mime-type:
                 - text/markdown
+  MDOpenerUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: MDOpener
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MDOpener
 schemes:
   MDOpener:
     build:
@@ -57,5 +68,8 @@ schemes:
         MDOpener: all
     run:
       config: Debug
+    test:
+      targets:
+        - MDOpenerUITests
     archive:
       config: Release
