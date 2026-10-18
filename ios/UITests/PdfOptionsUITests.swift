@@ -46,7 +46,9 @@ final class PdfOptionsUITests: XCTestCase {
         let toggle = app.switches[title].firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), app.debugDescription)
         if !toggle.isHittable { app.swipeUp() }
-        if toggle.value as? String != (enabled ? "1" : "0") { toggle.tap() }
-        XCTAssertEqual(toggle.value as? String, enabled ? "1" : "0", app.debugDescription)
+        let control = toggle.switches.firstMatch.exists ? toggle.switches.firstMatch : toggle
+        if control.value as? String != (enabled ? "1" : "0") { control.tap() }
+        let changed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", enabled ? "1" : "0"), object: control)
+        XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 3), .completed, app.debugDescription)
     }
 }
